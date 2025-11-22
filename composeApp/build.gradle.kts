@@ -1,3 +1,4 @@
+import java.util.Properties
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -7,12 +8,20 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
+    alias(libs.plugins.kotlinSerialization)
 }
+
+// Load local.properties for secrets like GITHUB_CLIENT_ID
+val localProps = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { this.load(it) }
+}
+val localGithubClientId = (localProps.getProperty("GITHUB_CLIENT_ID") ?: "").trim()
 
 kotlin {
     androidTarget {
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_11)
+            jvmTarget.set(JvmTarget.JVM_20)
         }
     }
     
@@ -32,6 +41,17 @@ kotlin {
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
+            // Koin DI
+            implementation(libs.koin.android)
+            implementation(libs.koin.androidx.compose)
+            // Ktor client for Android
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.okhttp)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.kotlinx.serialization.json)
+            // Secure storage (direct coordinate to avoid catalog accessor mismatch)
+            implementation(libs.androidx.security.crypto)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -42,6 +62,16 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+            // Koin core
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
+            // Shared HTTP and serialization
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.kotlinx.coroutines.core)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -49,6 +79,26 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
+            // Koin core
+            implementation(libs.koin.core)
+            // Ktor client for JVM Desktop
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.java)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.kotlinx.serialization.json)
+        }
+        iosMain.dependencies {
+            // Koin core
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
+            // Ktor client for iOS
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.darwin)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.kotlinx.serialization.json)
         }
     }
 }
@@ -63,6 +113,8 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+        // Expose GitHub client id to Android BuildConfig (do NOT commit secrets; read from local.properties)
+        buildConfigField("String", "GITHUB_CLIENT_ID", "\"${localGithubClientId}\"")
     }
     packaging {
         resources {
@@ -78,6 +130,9 @@ android {
         sourceCompatibility = JavaVersion.VERSION_20
         targetCompatibility = JavaVersion.VERSION_20
     }
+    buildFeatures {
+        buildConfig = true
+    }
 }
 
 dependencies {
@@ -87,6 +142,10 @@ dependencies {
 compose.desktop {
     application {
         mainClass = "zed.rainxch.githubstore.MainKt"
+        // Pass GitHub client id to the desktop runtime via JVM property
+        if (localGithubClientId.isNotEmpty()) {
+            jvmArgs("-DGITHUB_CLIENT_ID=${localGithubClientId}")
+        }
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
