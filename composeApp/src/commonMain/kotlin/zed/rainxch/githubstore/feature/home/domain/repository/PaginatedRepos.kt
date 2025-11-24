@@ -1,0 +1,8 @@
+package zed.rainxch.githubstore.feature.home.domain.repository
+
+import zed.rainxch.githubstore.core.domain.model.GithubRepoSummary
+
+data class PaginatedRepos(
+    val repos: List<GithubRepoSummary>,
+    val hasMore: Boolean
+)
