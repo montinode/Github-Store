@@ -12,6 +12,11 @@ import zed.rainxch.githubstore.feature.auth.data.repository.AuthRepositoryImpl
 import zed.rainxch.githubstore.feature.auth.domain.*
 import zed.rainxch.githubstore.feature.auth.domain.repository.AuthRepository
 import zed.rainxch.githubstore.feature.auth.presentation.AuthenticationViewModel
+import zed.rainxch.githubstore.feature.details.data.repository.DetailsRepositoryImpl
+import zed.rainxch.githubstore.feature.details.domain.repository.DetailsRepository
+import zed.rainxch.githubstore.feature.details.presentation.DetailsViewModel
+import zed.rainxch.githubstore.feature.install.Downloader
+import zed.rainxch.githubstore.feature.install.Installer
 import zed.rainxch.githubstore.feature.home.data.repository.HomeRepositoryImpl
 import zed.rainxch.githubstore.feature.home.data.repository.getPlatform
 import zed.rainxch.githubstore.feature.home.domain.repository.HomeRepository
@@ -20,7 +25,6 @@ import zed.rainxch.githubstore.feature.search.data.repository.SearchRepositoryIm
 import zed.rainxch.githubstore.feature.search.domain.repository.SearchRepository
 import zed.rainxch.githubstore.feature.search.presentation.SearchViewModel
 
-// Core/shared modules
 val coreModule: Module = module {
     single<TokenDataSource> { DefaultTokenDataSource() }
     // Authed GitHub client that reads token snapshot from TokenDataSource on every request
@@ -63,4 +67,20 @@ val searchModule: Module = module {
 
     // Presentation
     viewModel { SearchViewModel(get()) }
+}
+
+val detailsModule: Module = module {
+    single<DetailsRepository> {
+        DetailsRepositoryImpl(github = get())
+    }
+
+    // Presentation
+    viewModel { params ->
+        DetailsViewModel(
+            repositoryId = params.get(),
+            detailsRepository = get(),
+            downloader = get<Downloader>(),
+            installer = get<Installer>()
+        )
+    }
 }

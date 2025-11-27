@@ -62,6 +62,7 @@ import zed.rainxch.githubstore.feature.home.presentation.model.HomeCategory
 @Composable
 fun HomeRoot(
     onNavigateToSearch: () -> Unit,
+    onNavigateToDetails: (zed.rainxch.githubstore.core.domain.model.GithubRepoSummary) -> Unit,
     viewModel: HomeViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -74,9 +75,7 @@ fun HomeRoot(
                     onNavigateToSearch()
                 }
 
-                is HomeAction.OnRepositoryClick -> {
-                    TODO()
-                }
+                is HomeAction.OnRepositoryClick -> onNavigateToDetails(action.repo)
 
                 else -> {
                     viewModel.onAction(action)

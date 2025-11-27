@@ -59,6 +59,7 @@ import zed.rainxch.githubstore.feature.search.presentation.presentation.SortByBo
 @Composable
 fun SearchRoot(
     onNavigateBack : () -> Unit,
+    onNavigateToDetails: (zed.rainxch.githubstore.core.domain.model.GithubRepoSummary) -> Unit,
     viewModel: SearchViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -68,7 +69,7 @@ fun SearchRoot(
         onAction = { action ->
             when (action) {
                 is SearchAction.OnRepositoryClick -> {
-                    TODO()
+                    onNavigateToDetails(action.repository)
                 }
 
                 SearchAction.OnNavigateBackClick -> {

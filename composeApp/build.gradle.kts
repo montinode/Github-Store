@@ -9,7 +9,6 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.kotlinSerialization)
-    alias(libs.plugins.kotzilla)
 }
 
 // Load local.properties for secrets like GITHUB_CLIENT_ID
@@ -89,7 +88,8 @@ kotlin {
 
             implementation(libs.kotlinx.datetime)
 
-            implementation(libs.kotzilla.sdk)
+            implementation(libs.multiplatform.markdown.renderer)
+            implementation(libs.multiplatform.markdown.renderer.coil3)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -152,8 +152,6 @@ android {
         buildConfig = true
     }
 }
-
-// Kotzilla plugin is applied above. Configuration can be provided via composeApp/kotzilla.json.
 
 dependencies {
     debugImplementation(compose.uiTooling)

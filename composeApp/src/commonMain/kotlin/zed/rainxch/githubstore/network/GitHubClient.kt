@@ -5,6 +5,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.HttpRequestTimeoutException
+import io.ktor.client.plugins.HttpTimeoutConfig
 import io.ktor.util.network.UnresolvedAddressException
 import kotlinx.io.IOException
 import io.ktor.client.plugins.defaultRequest
@@ -22,17 +23,17 @@ fun buildGitHubHttpClient(getAccessToken: () -> String?): HttpClient {
     val json = Json { ignoreUnknownKeys = true }
     return HttpClient {
         install(ContentNegotiation) { json(json) }
+        // In your Ktor HttpClient Config
         install(HttpTimeout) {
-            // Keep conservative timeouts to avoid long hangs on mobile networks
-            requestTimeoutMillis = 10000
-            connectTimeoutMillis = 5000
-            socketTimeoutMillis = 10000
+            requestTimeoutMillis = HttpTimeoutConfig.INFINITE_TIMEOUT_MS // Infinite
+            connectTimeoutMillis = 30_000
+            socketTimeoutMillis = HttpTimeoutConfig.INFINITE_TIMEOUT_MS // Infinite
         }
         install(HttpRequestRetry) {
             maxRetries = 2
             retryIf { _, response ->
                 val code = response.status.value
-                code >= 500 && code < 600 // retry on 5xx
+                code in 500..<600 // retry on 5xx
             }
             retryOnExceptionIf { _, cause ->
                 // Retry on timeouts and transient network failures
