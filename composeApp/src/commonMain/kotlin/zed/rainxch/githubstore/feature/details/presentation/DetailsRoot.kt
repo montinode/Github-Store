@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -44,7 +45,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mikepenz.markdown.coil3.Coil3ImageTransformerImpl
 import com.mikepenz.markdown.compose.Markdown
+import githubstore.composeapp.generated.resources.Res
+import githubstore.composeapp.generated.resources.ic_github
 import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import zed.rainxch.githubstore.core.domain.model.GithubRelease
@@ -181,14 +185,38 @@ fun DetailsScreen(
                         .fillMaxWidth()
                         .padding(top = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
+                    horizontalArrangement = Arrangement.spacedBy(
+                        space = 12.dp,
+                        alignment = Alignment.CenterHorizontally
+                    )
                 ) {
-                    TextButton(onClick = { onAction(DetailsAction.OpenRepoInBrowser) }) {
-                        Text("View Source")
-                    }
-                    TextButton(onClick = { onAction(DetailsAction.OpenAuthorInBrowser) }) {
-                        Text("Author Profile")
-                    }
+                    GithubStoreButton(
+                        text = "View Source",
+                        onClick = {
+                            onAction(DetailsAction.OpenRepoInBrowser)
+                        },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.Code,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
+                    )
+
+                    GithubStoreButton(
+                        text = "Author Profile",
+                        onClick = {
+                            onAction(DetailsAction.OpenAuthorInBrowser)
+                        },
+                        icon = {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_github),
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
+                    )
                 }
             }
 

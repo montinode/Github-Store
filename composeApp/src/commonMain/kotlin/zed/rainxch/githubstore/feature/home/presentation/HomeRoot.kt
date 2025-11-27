@@ -17,6 +17,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
@@ -91,7 +95,7 @@ fun HomeScreen(
     state: HomeState,
     onAction: (HomeAction) -> Unit,
 ) {
-    val listState = rememberLazyListState()
+    val listState = rememberLazyStaggeredGridState()
 
     val shouldLoadMore by remember {
         derivedStateOf {
@@ -234,18 +238,25 @@ fun HomeScreen(
                 }
 
                 if (state.repos.isNotEmpty()) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
+                    LazyVerticalStaggeredGrid(
+                        state = listState,
+                        columns = StaggeredGridCells.Adaptive(400.dp),
+                        verticalItemSpacing = 12.dp,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        state = listState
+                        modifier = Modifier.fillMaxSize()
                     ) {
-                        items(state.repos) { repository ->
+                        items(
+                            items = state.repos,
+                            key = { it.id },
+                            contentType = { "repo" }
+                        ) { repository ->
                             RepositoryCard(
                                 repository = repository,
                                 onClick = {
                                     onAction(HomeAction.OnRepositoryClick(repository))
-                                }
+                                },
+                                modifier = Modifier.animateItem()
                             )
                         }
 

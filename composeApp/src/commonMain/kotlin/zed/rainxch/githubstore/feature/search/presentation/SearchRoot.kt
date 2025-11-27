@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +16,10 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -35,8 +40,10 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -46,11 +53,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import co.touchlab.kermit.Logger
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import zed.rainxch.githubstore.core.domain.model.GithubRepoSummary
 import zed.rainxch.githubstore.core.presentation.components.RepositoryCard
 import zed.rainxch.githubstore.core.presentation.theme.GithubStoreTheme
+import zed.rainxch.githubstore.feature.home.presentation.HomeAction
 import zed.rainxch.githubstore.feature.search.domain.model.SearchPlatformType
 import zed.rainxch.githubstore.feature.search.domain.model.SortBy
 import zed.rainxch.githubstore.feature.search.presentation.components.SortByBottomSheet
@@ -90,6 +99,32 @@ fun SearchScreen(
     onAction: (SearchAction) -> Unit,
 ) {
     val focusRequester = remember { FocusRequester() }
+    val listState = rememberLazyStaggeredGridState()
+
+    val shouldLoadMore by remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val totalItems = layoutInfo.totalItemsCount
+            val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()
+
+            // Trigger when near bottom (within 5 items)
+            totalItems > 0 &&
+                    lastVisibleItem != null &&
+                    lastVisibleItem.index >= (totalItems - 5) &&
+                    !state.isLoadingMore &&
+                    !state.isLoading &&
+                    state.hasMorePages
+        }
+    }
+
+    val currentOnAction by rememberUpdatedState(onAction)
+
+    LaunchedEffect(shouldLoadMore) {
+        if (shouldLoadMore) {
+            Logger.d { "UI triggering LoadMore" }
+            currentOnAction(SearchAction.LoadMore)
+        }
+    }
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
@@ -250,7 +285,7 @@ fun SearchScreen(
                 )
             }
 
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(Modifier.fillMaxSize()) {
                 if (state.isLoading && state.repositories.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -276,9 +311,13 @@ fun SearchScreen(
                 }
 
                 if (state.repositories.isNotEmpty()) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    LazyVerticalStaggeredGrid(
+                        state = listState,
+                        columns = StaggeredGridCells.Adaptive(400.dp),
+                        verticalItemSpacing = 12.dp,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
+                        modifier = Modifier.fillMaxSize()
                     ) {
                         items(
                             items = state.repositories,
@@ -289,16 +328,13 @@ fun SearchScreen(
                                 repository = repository,
                                 onClick = {
                                     onAction(SearchAction.OnRepositoryClick(repository))
-                                }
+                                },
+                                modifier = Modifier.animateItem()
                             )
                         }
 
                         if (state.hasMorePages) {
                             item {
-                                LaunchedEffect(Unit) {
-                                    onAction(SearchAction.LoadMore)
-                                }
-
                                 if (state.isLoadingMore) {
                                     Box(
                                         modifier = Modifier

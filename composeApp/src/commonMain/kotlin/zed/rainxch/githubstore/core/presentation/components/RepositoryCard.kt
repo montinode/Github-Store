@@ -33,9 +33,10 @@ import zed.rainxch.githubstore.core.presentation.utils.formatUpdatedAt
 fun RepositoryCard(
     repository: GithubRepoSummary,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         onClick = onClick,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer
