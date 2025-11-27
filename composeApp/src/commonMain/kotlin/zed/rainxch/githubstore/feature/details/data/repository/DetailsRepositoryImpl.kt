@@ -39,7 +39,8 @@ class DetailsRepositoryImpl(
             forksCount = repo.forks,
             language = repo.language,
             topics = repo.topics,
-            releasesUrl = "https://api.github.com/repos/${repo.owner.login}/${repo.name}/releases{/id}"
+            releasesUrl = "https://api.github.com/repos/${repo.owner.login}/${repo.name}/releases{/id}",
+            updatedAt = repo.updatedAt
         )
     }
 
@@ -116,6 +117,7 @@ class DetailsRepositoryImpl(
         @SerialName("forks_count") val forks: Int,
         val language: String? = null,
         val topics: List<String>? = null,
+        @SerialName("updated_at") val updatedAt: String,
     )
 
     @Serializable

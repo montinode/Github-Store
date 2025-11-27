@@ -109,7 +109,6 @@ class HomeRepositoryImpl(
                 val candidates = response.items
                     .map { repo -> repo to calculatePlatformScore(repo) }
                     .filter { it.second > 0 }
-                    .sortedByDescending { it.second }
                     .take(50)
                     .map { it.first }
 

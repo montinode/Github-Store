@@ -27,6 +27,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import zed.rainxch.githubstore.core.domain.model.GithubRepoSummary
 import zed.rainxch.githubstore.core.domain.model.GithubUser
 import zed.rainxch.githubstore.core.presentation.theme.GithubStoreTheme
+import zed.rainxch.githubstore.core.presentation.utils.formatUpdatedAt
 
 @Composable
 fun RepositoryCard(
@@ -125,6 +126,14 @@ fun RepositoryCard(
                 }
             }
 
+            Spacer(Modifier.height(12.dp))
+
+            Text(
+                text = formatUpdatedAt(repository.updatedAt),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.outline
+            )
+
             Spacer(Modifier.height(24.dp))
 
             GithubStoreButton(
@@ -152,7 +161,8 @@ fun RepositoryCardPreview() {
                 forksCount = 4,
                 language = "Kotlin",
                 topics = null,
-                releasesUrl = ""
+                releasesUrl = "",
+                updatedAt = ""
             ),
             onClick = { }
         )

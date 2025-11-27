@@ -23,7 +23,8 @@ data class GithubRepoNetworkModel(
     @SerialName("forks_count") val forksCount: Int,
     val language: String? = null,
     val topics: List<String>? = null,
-    @SerialName("releases_url") val releasesUrl: String
+    @SerialName("releases_url") val releasesUrl: String,
+    @SerialName("updated_at") val updatedAt: String
 )
 
 @Serializable
@@ -48,6 +49,7 @@ fun GithubRepoNetworkModel.toSummary(): GithubRepoSummary = GithubRepoSummary(
     forksCount = forksCount,
     language = language,
     topics = topics,
-    releasesUrl = releasesUrl
+    releasesUrl = releasesUrl,
+    updatedAt = updatedAt
 )
 

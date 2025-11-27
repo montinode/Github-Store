@@ -14,5 +14,6 @@ data class GithubRepoSummary(
     val forksCount: Int,
     val language: String?,
     val topics: List<String>?,
-    val releasesUrl: String // Template URL, usually: "https://api.github.com/repos/{owner}/{repo}/releases{/id}"
+    val releasesUrl: String,
+    val updatedAt: String
 )
