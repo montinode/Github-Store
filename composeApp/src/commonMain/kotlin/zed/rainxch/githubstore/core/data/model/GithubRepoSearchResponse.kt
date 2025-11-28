@@ -1,0 +1,10 @@
+package zed.rainxch.githubstore.core.data.model
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class GithubRepoSearchResponse(
+    @SerialName("total_count") val totalCount: Int,
+    val items: List<GithubRepoNetworkModel>
+)

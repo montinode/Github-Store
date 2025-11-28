@@ -8,7 +8,6 @@ import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
@@ -21,11 +20,12 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import zed.rainxch.githubstore.core.domain.model.GithubRepoSummary
-import zed.rainxch.githubstore.feature.home.data.model.GithubRepoNetworkModel
-import zed.rainxch.githubstore.feature.home.data.model.GithubRepoSearchResponse
-import zed.rainxch.githubstore.feature.home.data.model.toSummary
+import zed.rainxch.githubstore.core.data.mappers.toSummary
+import zed.rainxch.githubstore.core.data.model.GithubRepoNetworkModel
+import zed.rainxch.githubstore.core.data.model.GithubRepoSearchResponse
 import zed.rainxch.githubstore.feature.home.domain.repository.HomeRepository
 import zed.rainxch.githubstore.feature.home.domain.repository.PaginatedRepos
 import kotlin.time.Clock
@@ -79,7 +79,7 @@ class HomeRepositoryImpl(
         var currentApiPage = startPage
         val perPage = 100
         val semaphore = Semaphore(25)
-        val maxPagesToFetch = 5 // Increased from 3 to search deeper
+        val maxPagesToFetch = 5
         var pagesFetchedCount = 0
         var lastEmittedCount = 0
 
@@ -133,7 +133,6 @@ class HomeRepositoryImpl(
                             results.add(result)
                             Logger.d { "Found installer repo: ${result.fullName} (${results.size}/$desiredCount)" }
 
-                            // Emit every 3 repos or when reaching desired count
                             if (results.size % 3 == 0 || results.size >= desiredCount) {
                                 val newItems = results.subList(lastEmittedCount, results.size)
 
@@ -142,7 +141,6 @@ class HomeRepositoryImpl(
                                         PaginatedRepos(
                                             repos = newItems.toList(),
                                             hasMore = true,
-                                            // Important: advance to the NEXT page for subsequent loads
                                             nextPageIndex = currentApiPage + 1
                                         )
                                     )
@@ -175,7 +173,6 @@ class HomeRepositoryImpl(
             }
         }
 
-        // Final emission
         if (results.size > lastEmittedCount) {
             val finalBatch = results.subList(lastEmittedCount, results.size)
             val finalHasMore = pagesFetchedCount < maxPagesToFetch && results.size >= desiredCount
@@ -183,13 +180,11 @@ class HomeRepositoryImpl(
                 PaginatedRepos(
                     repos = finalBatch.toList(),
                     hasMore = finalHasMore,
-                    // If there are potentially more results, move to the next API page
                     nextPageIndex = if (finalHasMore) currentApiPage + 1 else currentApiPage
                 )
             )
             Logger.d { "Final emit: ${finalBatch.size} repos (total: ${results.size})" }
         } else if (results.isEmpty()) {
-            // Emit empty result with hasMore=false so UI knows to show "no results"
             emit(
                 PaginatedRepos(
                     repos = emptyList(),
@@ -239,17 +234,26 @@ class HomeRepositoryImpl(
 
     private suspend fun checkRepoHasInstallers(repo: GithubRepoNetworkModel): GithubRepoSummary? {
         return try {
-            val release: GithubReleaseNetworkModel? = githubNetworkClient
-                .get("/repos/${repo.owner.login}/${repo.name}/releases/latest") {
+            // Get recent releases to find the latest stable one
+            val allReleases: List<GithubReleaseNetworkModel> = githubNetworkClient
+                .get("/repos/${repo.owner.login}/${repo.name}/releases") {
                     header("Accept", "application/vnd.github.v3+json")
+                    parameter("per_page", 10) // Check up to 10 recent releases
                 }
                 .body()
 
-            if (release == null || release.assets.isEmpty()) {
+            // Find the latest STABLE release (not draft, not prerelease)
+            val stableRelease = allReleases.firstOrNull {
+                it.draft != true && it.prerelease != true
+            }
+
+            // If no stable release exists, reject this repo
+            if (stableRelease == null || stableRelease.assets.isEmpty()) {
                 return null
             }
 
-            val relevantAssets = release.assets.filter { asset ->
+            // Check if the stable release has the installers we need
+            val relevantAssets = stableRelease.assets.filter { asset ->
                 val name = asset.name.lowercase()
                 when (platform.type) {
                     PlatformType.ANDROID -> name.endsWith(".apk")
@@ -271,7 +275,10 @@ class HomeRepositoryImpl(
 
     @Serializable
     private data class GithubReleaseNetworkModel(
-        val assets: List<AssetNetworkModel>
+        val assets: List<AssetNetworkModel>,
+        val draft: Boolean? = null,
+        val prerelease: Boolean? = null,
+        @SerialName("published_at") val publishedAt: String? = null
     )
 
     @Serializable

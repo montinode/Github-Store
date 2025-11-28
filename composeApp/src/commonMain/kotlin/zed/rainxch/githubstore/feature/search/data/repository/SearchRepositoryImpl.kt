@@ -22,9 +22,9 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withTimeoutOrNull
 import zed.rainxch.githubstore.core.domain.model.GithubRepoSummary
-import zed.rainxch.githubstore.feature.home.data.model.GithubRepoNetworkModel
-import zed.rainxch.githubstore.feature.home.data.model.GithubRepoSearchResponse
-import zed.rainxch.githubstore.feature.home.data.model.toSummary
+import zed.rainxch.githubstore.core.data.mappers.toSummary
+import zed.rainxch.githubstore.core.data.model.GithubRepoNetworkModel
+import zed.rainxch.githubstore.core.data.model.GithubRepoSearchResponse
 import zed.rainxch.githubstore.feature.home.domain.repository.PaginatedRepos
 import zed.rainxch.githubstore.feature.search.data.repository.dto.GithubReleaseNetworkModel
 import zed.rainxch.githubstore.feature.search.data.repository.utils.LruCache
@@ -324,12 +324,11 @@ class SearchRepositoryImpl(
             val name = nameRaw.lowercase()
             return when (platform) {
                 SearchPlatformType.All -> name.endsWith(".apk") ||
-                        name.endsWith(".msi") || name.endsWith(".exe") ||
+                        name.endsWith(".msi") || name.endsWith(".exe") || name.contains(".exe") ||
                         name.endsWith(".dmg") || name.endsWith(".pkg") ||
                         name.endsWith(".appimage") || name.endsWith(".deb") || name.endsWith(".rpm")
-
                 SearchPlatformType.Android -> name.endsWith(".apk")
-                SearchPlatformType.Windows -> name.endsWith(".exe") || name.endsWith(".msi")
+                SearchPlatformType.Windows -> name.endsWith(".exe") || name.endsWith(".msi") || name.contains(".exe")
                 SearchPlatformType.Macos -> name.endsWith(".dmg") || name.endsWith(".pkg")
                 SearchPlatformType.Linux -> name.endsWith(".appimage") || name.endsWith(".deb") || name.endsWith(
                     ".rpm"
@@ -338,19 +337,29 @@ class SearchRepositoryImpl(
         }
 
         return try {
-            val latest: GithubReleaseNetworkModel? = githubNetworkClient
-                .get("/repos/${repo.owner.login}/${repo.name}/releases/latest") {
+            val allReleases: List<GithubReleaseNetworkModel> = githubNetworkClient
+                .get("/repos/${repo.owner.login}/${repo.name}/releases") {
                     header("Accept", "application/vnd.github.v3+json")
+                    parameter("per_page", 10)
                 }
                 .body()
 
-            val latestMatches = latest != null && latest.assets.any { asset ->
+            val stableRelease = allReleases.firstOrNull {
+                it.draft != true && it.prerelease != true
+            }
+
+            if (stableRelease == null || stableRelease.assets.isEmpty()) {
+                return null
+            }
+
+            val hasRelevantAssets = stableRelease.assets.any { asset ->
                 assetMatchesForPlatform(
                     asset.name,
                     targetPlatform
                 )
             }
-            if (latestMatches) repo.toSummary() else null
+
+            if (hasRelevantAssets) repo.toSummary() else null
         } catch (_: Exception) {
             null
         }
