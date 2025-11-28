@@ -9,7 +9,6 @@ import java.io.File
 import java.io.IOException
 
 class DesktopInstaller(
-    private val files: FileLocationsProvider,
     private val platform: PlatformType
 ) : Installer {
 
