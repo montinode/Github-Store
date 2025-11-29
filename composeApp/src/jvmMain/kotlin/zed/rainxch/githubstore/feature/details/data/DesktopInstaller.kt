@@ -391,14 +391,19 @@ class DesktopInstaller(
         Logger.d { "Installing RPM package: ${file.absolutePath}" }
 
         val installMethods = listOf(
-            listOf("pkexec", "dnf", "install", "-y", file.absolutePath),
+            // Method 1: pkexec + dnf with --nogpgcheck (bypass signature check)
+            listOf("pkexec", "dnf", "install", "-y", "--nogpgcheck", file.absolutePath),
 
-            listOf("pkexec", "yum", "install", "-y", file.absolutePath),
+            // Method 2: pkexec + yum with --nogpgcheck (older RHEL/CentOS)
+            listOf("pkexec", "yum", "install", "-y", "--nogpgcheck", file.absolutePath),
 
-            listOf("pkexec", "zypper", "install", "-y", file.absolutePath),
+            // Method 3: pkexec + zypper with --no-gpg-checks (openSUSE)
+            listOf("pkexec", "zypper", "install", "-y", "--no-gpg-checks", file.absolutePath),
 
-            listOf("pkexec", "rpm", "-i", file.absolutePath),
+            // Method 4: pkexec + rpm with --nosignature
+            listOf("pkexec", "rpm", "-i", "--nosignature", file.absolutePath),
 
+            // Method 5: Terminal
             null
         )
 
@@ -509,22 +514,23 @@ class DesktopInstaller(
 
             tryShowNotification(
                 "Installation Required",
-                "Please install manually: sudo dnf install -y '$filePath'"
+                "Please install manually: sudo dnf install -y --nogpgcheck '$filePath'"
             )
 
-            tryCopyToClipboard("sudo dnf install -y '$filePath'")
+            tryCopyToClipboard("sudo dnf install -y --nogpgcheck '$filePath'")
 
             throw IOException(
                 "No terminal emulator found. Please install manually:\n" +
-                        "sudo dnf install -y '$filePath'"
+                        "sudo dnf install -y --nogpgcheck '$filePath'"
             )
         }
 
-        val command ="echo 'Installing RPM package...'; " +
-                "sudo dnf install -y '$filePath' " +
-                "|| sudo yum install -y '$filePath' " +
-                "|| sudo rpm -i '$filePath'; echo ''; " +
-                "echo 'Installation complete. Press Enter to close...'; read"
+        // Updated command with --nogpgcheck flag
+        val command = "echo 'Installing RPM package...'; " +
+                "sudo dnf install -y --nogpgcheck '$filePath' || " +
+                "sudo yum install -y --nogpgcheck '$filePath' || " +
+                "sudo rpm -i --nosignature '$filePath'; " +
+                "echo ''; echo 'Installation complete. Press Enter to close...'; read"
 
         for (terminal in availableTerminals) {
             try {
@@ -533,31 +539,24 @@ class DesktopInstaller(
                     LinuxTerminal.GNOME_TERMINAL -> ProcessBuilder(
                         "gnome-terminal", "--", "bash", "-c", command
                     )
-
                     LinuxTerminal.KONSOLE -> ProcessBuilder(
                         "konsole", "-e", "bash", "-c", command
                     )
-
                     LinuxTerminal.XTERM -> ProcessBuilder(
                         "xterm", "-e", "bash", "-c", command
                     )
-
                     LinuxTerminal.XFCE4_TERMINAL -> ProcessBuilder(
                         "xfce4-terminal", "-e", "bash -c \"$command\""
                     )
-
                     LinuxTerminal.ALACRITTY -> ProcessBuilder(
                         "alacritty", "-e", "bash", "-c", command
                     )
-
                     LinuxTerminal.KITTY -> ProcessBuilder(
                         "kitty", "bash", "-c", command
                     )
-
                     LinuxTerminal.TILIX -> ProcessBuilder(
                         "tilix", "-e", "bash -c \"$command\""
                     )
-
                     LinuxTerminal.MATE_TERMINAL -> ProcessBuilder(
                         "mate-terminal", "-e", "bash -c \"$command\""
                     )
