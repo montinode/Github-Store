@@ -1,11 +1,20 @@
 package zed.rainxch.githubstore.feature.details.presentation
 
+import zed.rainxch.githubstore.core.data.local.db.entities.InstalledApp
 import zed.rainxch.githubstore.core.domain.model.Architecture
 import zed.rainxch.githubstore.core.domain.model.GithubRepoSummary
 import zed.rainxch.githubstore.core.domain.model.GithubRelease
 import zed.rainxch.githubstore.core.domain.model.GithubAsset
 import zed.rainxch.githubstore.core.domain.model.GithubUserProfile
 import zed.rainxch.githubstore.feature.details.domain.model.RepoStats
+
+data class InstallLogItem(
+    val timeIso: String,
+    val assetName: String,
+    val assetSizeBytes: Long,
+    val releaseTag: String,
+    val result: String
+)
 
 data class DetailsState(
     val isLoading: Boolean = true,
@@ -38,14 +47,9 @@ data class DetailsState(
 
     val isAppManagerAvailable: Boolean = false,
     val isAppManagerEnabled: Boolean = false,
-)
 
-data class InstallLogItem(
-    val timeIso: String,
-    val assetName: String,
-    val assetSizeBytes: Long,
-    val releaseTag: String,
-    val result: String
+    val installedApp: InstalledApp? = null,
+    val isFavorite: Boolean = false
 )
 
 enum class DownloadStage {

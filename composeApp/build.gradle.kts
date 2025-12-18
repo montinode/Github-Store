@@ -129,7 +129,7 @@ kotlin {
 
             // Room
             implementation(libs.androidx.room.runtime)
-            implementation(libs.androidx.sqlite.bundled)
+            implementation(libs.sqlite.bundled)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -158,6 +158,12 @@ kotlin {
     }
 }
 
+afterEvaluate {
+    tasks.matching { it.name.contains("kspKotlinJvm") || it.name == "compileKotlinJvm" }.configureEach {
+        dependsOn(generateJvmBuildConfig)
+    }
+}
+
 tasks.named("compileKotlinJvm") {
     dependsOn(generateJvmBuildConfig)
 }
@@ -176,7 +182,7 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = appVersionCode
         versionName = appVersionName
-        // Expose GitHub client id to Android BuildConfig (do NOT commit secrets; read from local.properties)
+
         buildConfigField("String", "GITHUB_CLIENT_ID", "\"${localGithubClientId}\"")
         buildConfigField("String", "VERSION_NAME", "\"${appVersionName}\"")
     }
@@ -210,6 +216,8 @@ tasks.named<Test>("jvmTest") {
 
 dependencies {
     debugImplementation(compose.uiTooling)
+
+    ksp(libs.androidx.room.compiler)
 }
 
 room {

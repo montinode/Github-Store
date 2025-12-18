@@ -10,13 +10,18 @@ import androidx.core.content.FileProvider
 import java.io.File
 import androidx.core.net.toUri
 import co.touchlab.kermit.Logger
+import zed.rainxch.githubstore.core.data.ApkInfoExtractor
 import zed.rainxch.githubstore.core.domain.model.Architecture
 import zed.rainxch.githubstore.core.domain.model.GithubAsset
 
 class AndroidInstaller(
     private val context: Context,
+    private val apkInfoExtractor: ApkInfoExtractor
 ) : Installer {
 
+    override fun getApkInfoExtractor(): ApkInfoExtractor {
+        return apkInfoExtractor
+    }
     override fun detectSystemArchitecture(): Architecture {
         val arch = Build.SUPPORTED_ABIS.firstOrNull() ?: return Architecture.UNKNOWN
         return when {
@@ -30,16 +35,13 @@ class AndroidInstaller(
 
     override fun isAssetInstallable(assetName: String): Boolean {
         val name = assetName.lowercase()
-
         if (!name.endsWith(".apk")) return false
-
         val systemArch = detectSystemArchitecture()
         return isArchitectureCompatible(name, systemArch)
     }
 
     private fun isArchitectureCompatible(assetName: String, systemArch: Architecture): Boolean {
         val name = assetName.lowercase()
-
         val hasArchInName = listOf(
             "x86_64", "amd64", "x64",
             "aarch64", "arm64",
@@ -53,53 +55,41 @@ class AndroidInstaller(
             Architecture.X86_64 -> {
                 name.contains("x86_64") || name.contains("amd64") || name.contains("x64")
             }
-
             Architecture.AARCH64 -> {
                 name.contains("aarch64") || name.contains("arm64")
             }
-
             Architecture.X86 -> {
                 name.contains("i386") || name.contains("i686") || name.contains("x86")
             }
-
             Architecture.ARM -> {
                 name.contains("armv7") || name.contains("armeabi") || name.contains("arm")
             }
-
             Architecture.UNKNOWN -> true
         }
     }
 
     override fun choosePrimaryAsset(assets: List<GithubAsset>): GithubAsset? {
         if (assets.isEmpty()) return null
-
         val systemArch = detectSystemArchitecture()
-
         val compatibleAssets = assets.filter { asset ->
             isArchitectureCompatible(asset.name.lowercase(), systemArch)
         }
-
         val assetsToConsider = compatibleAssets.ifEmpty { assets }
-
         return assetsToConsider.maxByOrNull { asset ->
             val name = asset.name.lowercase()
             val archBoost = when (systemArch) {
                 Architecture.X86_64 -> {
                     if (name.contains("x86_64") || name.contains("amd64")) 10000 else 0
                 }
-
                 Architecture.AARCH64 -> {
                     if (name.contains("aarch64") || name.contains("arm64")) 10000 else 0
                 }
-
                 Architecture.X86 -> {
                     if (name.contains("i386") || name.contains("i686")) 10000 else 0
                 }
-
                 Architecture.ARM -> {
                     if (name.contains("armv7") || name.contains("armeabi")) 10000 else 0
                 }
-
                 Architecture.UNKNOWN -> 0
             }
             archBoost + asset.size
@@ -127,7 +117,6 @@ class AndroidInstaller(
 
     override suspend fun install(filePath: String, extOrMime: String) {
         val file = File(filePath)
-
         if (!file.exists()) {
             throw IllegalStateException("APK file not found: $filePath")
         }
@@ -171,12 +160,10 @@ class AndroidInstaller(
         onOpenInstaller: () -> Unit
     ) {
         val obtainiumUrl = "obtainium://add/https://github.com/$repoOwner/$repoName"
-
         val intent = Intent(Intent.ACTION_VIEW).apply {
             data = obtainiumUrl.toUri()
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-
         try {
             context.startActivity(intent)
         } catch (_: ActivityNotFoundException) {
@@ -198,7 +185,6 @@ class AndroidInstaller(
         onOpenInstaller: () -> Unit
     ) {
         val file = File(filePath)
-
         if (!file.exists()) {
             throw IllegalStateException("APK file not found: $filePath")
         }

@@ -3,6 +3,7 @@ package zed.rainxch.githubstore.feature.details.data
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import zed.rainxch.githubstore.core.data.ApkInfoExtractor
 import zed.rainxch.githubstore.core.domain.model.Architecture
 import zed.rainxch.githubstore.core.domain.model.GithubAsset
 import zed.rainxch.githubstore.core.domain.model.PlatformType
@@ -15,7 +16,8 @@ import java.io.File
 import java.io.IOException
 
 class DesktopInstaller(
-    private val platform: PlatformType
+    private val platform: PlatformType,
+    private val apkInfoExtractor: ApkInfoExtractor
 ) : Installer {
 
     private val linuxPackageType: LinuxPackageType by lazy {
@@ -24,6 +26,10 @@ class DesktopInstaller(
 
     private val systemArchitecture: Architecture by lazy {
         determineSystemArchitecture()
+    }
+
+    override fun getApkInfoExtractor(): ApkInfoExtractor {
+        return apkInfoExtractor
     }
 
     override fun detectSystemArchitecture(): Architecture = systemArchitecture

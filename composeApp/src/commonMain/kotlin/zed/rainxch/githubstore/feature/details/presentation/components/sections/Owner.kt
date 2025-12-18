@@ -59,8 +59,12 @@ fun LazyListScope.author(
 
         OutlinedCard(
             onClick = {
-                author?.id?.toInt()?.let { authorId ->
-                    onAction(DetailsAction.OpenAuthorInApp(authorId))
+                author?.login?.let { author ->
+                    onAction(
+                        DetailsAction.OpenAuthorInApp(
+                            author
+                        )
+                    )
                 }
             },
             colors = CardDefaults.outlinedCardColors(
@@ -133,12 +137,11 @@ fun LazyListScope.author(
                     }
                 }
 
-                if(false) { // For now invisible
+                if (false) { // For now invisible
                     IconButton(
-//                        shapes = IconButtonDefaults.shapes(),
                         onClick = {
-                            author?.id?.toInt()?.let { authorId ->
-                                onAction(DetailsAction.OpenAuthorInApp(authorId))
+                            author?.login?.let { author ->
+                                onAction(DetailsAction.OpenAuthorInApp(author))
                             }
                         },
                         colors = IconButtonDefaults.iconButtonColors(

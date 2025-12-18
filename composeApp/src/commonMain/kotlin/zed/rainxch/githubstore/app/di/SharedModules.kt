@@ -8,11 +8,18 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import zed.rainxch.githubstore.MainViewModel
 import zed.rainxch.githubstore.app.app_state.AppStateManager
+import zed.rainxch.githubstore.core.data.PackageMonitor
 import zed.rainxch.githubstore.core.data.data_source.DefaultTokenDataSource
 import zed.rainxch.githubstore.core.data.data_source.TokenDataSource
+import zed.rainxch.githubstore.core.data.local.db.AppDatabase
+import zed.rainxch.githubstore.core.data.repository.FavoritesRepositoryImpl
+import zed.rainxch.githubstore.core.data.repository.InstalledAppsRepositoryImpl
 import zed.rainxch.githubstore.core.data.repository.ThemesRepositoryImpl
 import zed.rainxch.githubstore.core.domain.getPlatform
+import zed.rainxch.githubstore.core.domain.repository.FavoritesRepository
+import zed.rainxch.githubstore.core.domain.repository.InstalledAppsRepository
 import zed.rainxch.githubstore.core.domain.repository.ThemesRepository
+import zed.rainxch.githubstore.core.presentation.theme.surfaceVariantDark
 import zed.rainxch.githubstore.network.buildAuthedGitHubHttpClient
 import zed.rainxch.githubstore.feature.auth.data.repository.AuthRepositoryImpl
 import zed.rainxch.githubstore.feature.auth.domain.*
@@ -68,6 +75,30 @@ val coreModule: Module = module {
             tokenDataSource = get(),
             themesRepository = get(),
             appStateManager = get()
+        )
+    }
+
+    single { get<AppDatabase>().installedAppDao }
+    single { get<AppDatabase>().favoriteRepoDao }
+    single { get<AppDatabase>().updateHistoryDao }
+
+    single<FavoritesRepository> {
+        FavoritesRepositoryImpl(
+            dao = get(),
+            installedAppsDao = get(),
+            detailsRepository = get()
+        )
+    }
+
+    single<CoroutineScope> {
+        CoroutineScope(Dispatchers.IO + SupervisorJob())
+    }
+
+    single<InstalledAppsRepository> {
+        InstalledAppsRepositoryImpl(
+            dao = get(),
+            historyDao = get(),
+            detailsRepository = get()
         )
     }
 }
@@ -142,7 +173,10 @@ val detailsModule: Module = module {
             downloader = get<Downloader>(),
             installer = get<Installer>(),
             platform = getPlatform(),
-            helper = get()
+            helper = get(),
+            installedAppsRepository = get(),
+            favoritesRepository = get(),
+            packageMonitor = get<PackageMonitor>()
         )
     }
 }

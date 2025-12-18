@@ -6,6 +6,7 @@ import co.touchlab.kermit.Logger
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.onStart
@@ -18,12 +19,20 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
 import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
+import zed.rainxch.githubstore.core.data.PackageMonitor
+import zed.rainxch.githubstore.core.data.local.db.entities.FavoriteRepo
+import zed.rainxch.githubstore.core.data.local.db.entities.InstallSource
+import zed.rainxch.githubstore.core.data.local.db.entities.InstalledApp
 import zed.rainxch.githubstore.core.domain.Platform
 import zed.rainxch.githubstore.core.domain.model.PlatformType
+import zed.rainxch.githubstore.core.domain.repository.FavoritesRepository
+import zed.rainxch.githubstore.core.domain.repository.InstalledAppsRepository
 import zed.rainxch.githubstore.core.presentation.utils.BrowserHelper
 import zed.rainxch.githubstore.feature.details.data.Downloader
 import zed.rainxch.githubstore.feature.details.data.Installer
 import zed.rainxch.githubstore.feature.details.domain.repository.DetailsRepository
+import java.io.File
+import kotlin.time.Clock
 import kotlin.time.Clock.System
 import kotlin.time.ExperimentalTime
 
@@ -33,7 +42,10 @@ class DetailsViewModel(
     private val downloader: Downloader,
     private val installer: Installer,
     private val platform: Platform,
-    private val helper: BrowserHelper
+    private val helper: BrowserHelper,
+    private val installedAppsRepository: InstalledAppsRepository,
+    private val favoritesRepository: FavoritesRepository,
+    private val packageMonitor: PackageMonitor
 ) : ViewModel() {
 
     private var hasLoadedInitialData = false
@@ -57,6 +69,7 @@ class DetailsViewModel(
     private val _events = Channel<DetailsEvent>()
     val events = _events.receiveAsFlow()
 
+    @OptIn(ExperimentalTime::class)
     private fun loadInitial() {
         viewModelScope.launch {
             try {
@@ -110,6 +123,67 @@ class DetailsViewModel(
                     }
                 }
 
+                val installedAppDeferred = async {
+                    try {
+                        val dbApp = installedAppsRepository.getAppByRepoId(repo.id)
+
+                        if (dbApp != null) {
+                            val isActuallyInstalled =
+                                packageMonitor.isPackageInstalled(dbApp.packageName)
+                            if (!isActuallyInstalled) {
+                                if (dbApp.isPendingInstall) {
+                                    val timeSince =
+                                        System.now().toEpochMilliseconds() - dbApp.installedAt
+                                    if (timeSince > 600000) {
+                                        Logger.d { "Pending install timed out for ${dbApp.packageName}, removing from DB" }
+                                        installedAppsRepository.deleteInstalledApp(dbApp.packageName)
+                                        null
+                                    } else {
+                                        dbApp
+                                    }
+                                } else {
+                                    Logger.d { "App ${dbApp.packageName} not found in system, removing from DB" }
+                                    installedAppsRepository.deleteInstalledApp(dbApp.packageName)
+                                    null
+                                }
+                            } else {
+                                if (dbApp.isPendingInstall) {
+                                    installedAppsRepository.updatePendingStatus(
+                                        dbApp.packageName,
+                                        false
+                                    )
+                                }
+                                val systemInfo =
+                                    packageMonitor.getInstalledPackageInfo(dbApp.packageName)
+                                if (systemInfo != null && systemInfo.versionName != dbApp.installedVersion) {
+                                    installedAppsRepository.updateAppVersion(
+                                        packageName = dbApp.packageName,
+                                        newVersion = systemInfo.versionName,
+                                        newAssetName = dbApp.installedAssetName.toString(),
+                                        newAssetUrl = dbApp.installedAssetUrl.toString()
+                                    )
+                                    installedAppsRepository.getAppByPackage(dbApp.packageName)
+                                } else {
+                                    dbApp
+                                }
+                            }
+                        } else {
+                            null
+                        }
+                    } catch (t: Throwable) {
+                        Logger.e { "Failed to check installed app: ${t.message}" }
+                        null
+                    }
+                }
+
+                val isFavoriteDeferred = async {
+                    try {
+                        favoritesRepository.isFavoriteSync(repo.id)
+                    } catch (t: Throwable) {
+                        false
+                    }
+                }
+
                 val isObtainiumEnabled = platform.type == PlatformType.ANDROID
                 val isAppManagerEnabled = platform.type == PlatformType.ANDROID
 
@@ -117,6 +191,8 @@ class DetailsViewModel(
                 val stats = statsDeferred.await()
                 val readme = readmeDeferred.await()
                 val userProfile = userProfileDeferred.await()
+                val installedApp = installedAppDeferred.await()
+                val isFavorite = isFavoriteDeferred.await()
 
                 val installable = latestRelease?.assets?.filter { asset ->
                     installer.isAssetInstallable(asset.name)
@@ -127,7 +203,7 @@ class DetailsViewModel(
                 val isObtainiumAvailable = installer.isObtainiumInstalled()
                 val isAppManagerAvailable = installer.isAppManagerInstalled()
 
-                println(repo.id)
+                Logger.d { "Loaded repo: ${repo.name}, installedApp: ${installedApp?.packageName}" }
 
                 _state.value = _state.value.copy(
                     isLoading = false,
@@ -143,7 +219,9 @@ class DetailsViewModel(
                     isObtainiumAvailable = isObtainiumAvailable,
                     isObtainiumEnabled = isObtainiumEnabled,
                     isAppManagerAvailable = isAppManagerAvailable,
-                    isAppManagerEnabled = isAppManagerEnabled
+                    isAppManagerEnabled = isAppManagerEnabled,
+                    installedApp = installedApp,
+                    isFavorite = isFavorite
                 )
             } catch (t: Throwable) {
                 Logger.e { "Details load failed: ${t.message}" }
@@ -155,6 +233,7 @@ class DetailsViewModel(
         }
     }
 
+    @OptIn(ExperimentalTime::class)
     fun onAction(action: DetailsAction) {
         when (action) {
             DetailsAction.Retry -> {
@@ -214,6 +293,76 @@ class DetailsViewModel(
                     downloadProgressPercent = null,
                     downloadStage = DownloadStage.IDLE
                 )
+            }
+
+            DetailsAction.ToggleFavorite -> {
+                viewModelScope.launch {
+                    try {
+                        val repo = _state.value.repository ?: return@launch
+                        val latestRelease = _state.value.latestRelease
+
+                        val favoriteRepo = FavoriteRepo(
+                            repoId = repo.id,
+                            repoName = repo.name,
+                            repoOwner = repo.owner.login,
+                            repoOwnerAvatarUrl = repo.owner.avatarUrl,
+                            repoDescription = repo.description,
+                            primaryLanguage = repo.language,
+                            repoUrl = repo.htmlUrl,
+                            latestVersion = latestRelease?.tagName,
+                            latestReleaseUrl = latestRelease?.htmlUrl,
+                            addedAt = System.now().toEpochMilliseconds(),
+                            lastSyncedAt = System.now().toEpochMilliseconds()
+                        )
+
+                        favoritesRepository.toggleFavorite(favoriteRepo)
+
+                        val newFavoriteState = favoritesRepository.isFavoriteSync(repo.id)
+                        _state.value = _state.value.copy(isFavorite = newFavoriteState)
+
+                    } catch (t: Throwable) {
+                        Logger.e { "Failed to toggle favorite: ${t.message}" }
+                    }
+                }
+            }
+
+            DetailsAction.CheckForUpdates -> {
+                viewModelScope.launch {
+                    try {
+                        val installedApp = _state.value.installedApp ?: return@launch
+                        val hasUpdate =
+                            installedAppsRepository.checkForUpdates(installedApp.packageName)
+
+                        if (hasUpdate) {
+                            val updatedApp =
+                                installedAppsRepository.getAppByPackage(installedApp.packageName)
+                            _state.value = _state.value.copy(installedApp = updatedApp)
+                        }
+                    } catch (t: Throwable) {
+                        Logger.e { "Failed to check for updates: ${t.message}" }
+                    }
+                }
+            }
+
+            DetailsAction.UpdateApp -> {
+                val installedApp = _state.value.installedApp
+                val latestRelease = _state.value.latestRelease
+
+                if (installedApp != null && latestRelease != null && installedApp.isUpdateAvailable) {
+                    val latestAsset = _state.value.installableAssets.firstOrNull {
+                        it.name == installedApp.latestAssetName
+                    } ?: _state.value.primaryAsset
+
+                    if (latestAsset != null) {
+                        installAsset(
+                            downloadUrl = latestAsset.downloadUrl,
+                            assetName = latestAsset.name,
+                            sizeBytes = latestAsset.size,
+                            releaseTag = latestRelease.tagName,
+                            isUpdate = true
+                        )
+                    }
+                }
             }
 
             DetailsAction.OpenRepoInBrowser -> {
@@ -349,14 +498,20 @@ class DetailsViewModel(
         downloadUrl: String,
         assetName: String,
         sizeBytes: Long,
-        releaseTag: String
+        releaseTag: String,
+        isUpdate: Boolean = false
     ) {
         currentDownloadJob?.cancel()
         currentDownloadJob = viewModelScope.launch {
             try {
                 currentAssetName = assetName
 
-                appendLog(assetName, sizeBytes, releaseTag, "DownloadStarted")
+                appendLog(
+                    assetName,
+                    sizeBytes,
+                    releaseTag,
+                    if (isUpdate) "Update Started" else "Download Started"
+                )
                 _state.value = _state.value.copy(
                     downloadError = null,
                     installError = null,
@@ -389,14 +544,29 @@ class DetailsViewModel(
                     throw IllegalStateException("Asset type .$ext not supported")
                 }
 
+                saveInstalledAppToDatabase(
+                    assetName = assetName,
+                    assetUrl = downloadUrl,
+                    assetSize = sizeBytes,
+                    releaseTag = releaseTag,
+                    isUpdate = isUpdate,
+                    filePath = filePath
+                )
+
                 installer.install(filePath, ext)
 
                 _state.value = _state.value.copy(downloadStage = DownloadStage.IDLE)
                 currentAssetName = null
-                appendLog(assetName, sizeBytes, releaseTag, "Installed")
+                appendLog(
+                    assetName,
+                    sizeBytes,
+                    releaseTag,
+                    if (isUpdate) "Updated" else "Installed"
+                )
 
             } catch (t: Throwable) {
                 Logger.e { "Install failed: ${t.message}" }
+                t.printStackTrace()
                 _state.value = _state.value.copy(
                     downloadStage = DownloadStage.IDLE,
                     installError = t.message
@@ -404,6 +574,104 @@ class DetailsViewModel(
                 currentAssetName = null
                 appendLog(assetName, sizeBytes, releaseTag, "Error: ${t.message}")
             }
+        }
+    }
+
+    @OptIn(ExperimentalTime::class)
+    private suspend fun saveInstalledAppToDatabase(
+        assetName: String,
+        assetUrl: String,
+        assetSize: Long,
+        releaseTag: String,
+        isUpdate: Boolean,
+        filePath: String
+    ) {
+        try {
+            val repo = _state.value.repository ?: return
+            val release = _state.value.latestRelease ?: return
+
+            // Extract actual package name from APK on Android
+            var packageName: String
+            var appName = repo.name
+
+            if (platform.type == PlatformType.ANDROID && assetName.lowercase().endsWith(".apk")) {
+                val apkInfo = installer.getApkInfoExtractor().extractPackageInfo(filePath)
+                if (apkInfo != null) {
+                    packageName = apkInfo.packageName
+                    appName = apkInfo.appName
+                    Logger.d { "Extracted APK info - package: $packageName, name: $appName" }
+                } else {
+                    Logger.e { "Failed to extract APK info for $assetName at $filePath - skipping DB tracking. File exists: ${File(filePath).exists()}, size: ${File(filePath).length()} (expected $assetSize)" }
+                    return
+                }
+            } else {
+                packageName = "app.github.${repo.owner.login}.${repo.name}".lowercase()
+            }
+
+            if (isUpdate) {
+                // Update existing app
+                installedAppsRepository.updateAppVersion(
+                    packageName = packageName,
+                    newVersion = releaseTag,
+                    newAssetName = assetName,
+                    newAssetUrl = assetUrl
+                )
+
+                Logger.d { "Updated app in database: $packageName to version $releaseTag" }
+            } else {
+                // Save new installation
+                val installedApp = InstalledApp(
+                    packageName = packageName,
+                    repoId = repo.id,
+                    repoName = repo.name,
+                    repoOwner = repo.owner.login,
+                    repoOwnerAvatarUrl = repo.owner.avatarUrl,
+                    repoDescription = repo.description,
+                    primaryLanguage = repo.language,
+                    repoUrl = repo.htmlUrl,
+                    installedVersion = releaseTag,
+                    installedAssetName = assetName,
+                    installedAssetUrl = assetUrl,
+                    latestVersion = releaseTag,
+                    latestAssetName = assetName,
+                    latestAssetUrl = assetUrl,
+                    latestAssetSize = assetSize,
+                    appName = appName,
+                    installSource = InstallSource.THIS_APP,
+                    installedAt = System.now().toEpochMilliseconds(),
+                    lastCheckedAt = System.now().toEpochMilliseconds(),
+                    lastUpdatedAt = System.now().toEpochMilliseconds(),
+                    isUpdateAvailable = false,
+                    updateCheckEnabled = true,
+                    releaseNotes = "",
+                    systemArchitecture = installer.detectSystemArchitecture().name,
+                    fileExtension = assetName.substringAfterLast('.', ""),
+                    isPendingInstall = !isUpdate  // Pending for new installs
+                )
+
+                installedAppsRepository.saveInstalledApp(installedApp)
+
+                Logger.d { "Saved new app to database: $packageName, version: $releaseTag" }
+            }
+
+            // Update favorite status if this repo is favorited
+            if (_state.value.isFavorite) {
+                favoritesRepository.updateFavoriteInstallStatus(
+                    repoId = repo.id,
+                    installed = true,
+                    packageName = packageName
+                )
+            }
+
+            delay(500)
+            val updatedApp = installedAppsRepository.getAppByPackage(packageName)
+            _state.value = _state.value.copy(installedApp = updatedApp)
+
+            Logger.d { "Successfully saved and reloaded app: ${updatedApp?.packageName}" }
+
+        } catch (t: Throwable) {
+            Logger.e { "Failed to save installed app to database: ${t.message}" }
+            t.printStackTrace()
         }
     }
 

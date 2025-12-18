@@ -7,13 +7,13 @@ fun initKoin(config: KoinAppDeclaration? = null) {
     startKoin {
         config?.invoke(this)
         modules(
+            platformModule,
             coreModule,
             authModule,
             homeModule,
             searchModule,
             detailsModule,
             settingsModule,
-            platformModule
         )
     }
 }

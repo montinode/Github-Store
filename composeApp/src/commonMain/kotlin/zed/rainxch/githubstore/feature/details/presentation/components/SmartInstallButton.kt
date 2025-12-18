@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -55,11 +56,31 @@ fun SmartInstallButton(
 ) {
     val liquidState = LocalTopbarLiquidState.current
 
+    val installedApp = state.installedApp
+    val isInstalled = installedApp != null
+    val isUpdateAvailable = installedApp?.isUpdateAvailable == true
+
     val enabled = remember(primaryAsset, isDownloading, isInstalling) {
         primaryAsset != null && !isDownloading && !isInstalling
     }
 
     val isActiveDownload = state.isDownloading || state.downloadStage != DownloadStage.IDLE
+
+    // Determine button color and text based on install status
+    val buttonColor = when {
+        !enabled && !isActiveDownload -> MaterialTheme.colorScheme.surfaceContainer
+        isUpdateAvailable -> MaterialTheme.colorScheme.tertiary
+        isInstalled -> MaterialTheme.colorScheme.secondary
+        else -> MaterialTheme.colorScheme.primary
+    }
+
+    val buttonText = when {
+        !enabled && primaryAsset == null -> "Not Available"
+        installedApp != null && installedApp.installedVersion != state.latestRelease?.tagName -> "Update app"
+        isUpdateAvailable -> "Update to ${installedApp?.latestVersion}"
+        isInstalled -> "Reinstall"
+        else -> "Install latest"
+    }
 
     Row(
         modifier = modifier,
@@ -71,24 +92,24 @@ fun SmartInstallButton(
                 .weight(1f)
                 .height(52.dp)
                 .background(
-                    color = if (enabled || isActiveDownload) {
-                        MaterialTheme.colorScheme.primary
-                    } else MaterialTheme.colorScheme.surfaceContainer,
+                    color = buttonColor,
                     shape = CircleShape
                 )
                 .clickable(
                     enabled = enabled,
                     onClick = {
                         if (!state.isDownloading && state.downloadStage == DownloadStage.IDLE) {
-                            onAction(DetailsAction.InstallPrimary)
+                            if (isUpdateAvailable) {
+                                onAction(DetailsAction.UpdateApp)
+                            } else {
+                                onAction(DetailsAction.InstallPrimary)
+                            }
                         }
                     }
                 )
                 .liquefiable(liquidState),
             colors = CardDefaults.elevatedCardColors(
-                containerColor = if (enabled || isActiveDownload) {
-                    MaterialTheme.colorScheme.primary
-                } else MaterialTheme.colorScheme.surfaceContainer
+                containerColor = buttonColor
             ),
             shape = if (state.isObtainiumEnabled || isActiveDownload) {
                 RoundedCornerShape(
@@ -111,7 +132,7 @@ fun SmartInstallButton(
                         when (state.downloadStage) {
                             DownloadStage.DOWNLOADING -> {
                                 Text(
-                                    text = "Downloading",
+                                    text = if (isUpdateAvailable) "Updating" else "Downloading",
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.onPrimary,
                                     fontWeight = FontWeight.Bold
@@ -135,7 +156,7 @@ fun SmartInstallButton(
 
                             DownloadStage.INSTALLING -> {
                                 Text(
-                                    text = "Installing",
+                                    text = if (isUpdateAvailable) "Updating" else "Installing",
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.onPrimary,
                                     fontWeight = FontWeight.Bold
@@ -150,16 +171,39 @@ fun SmartInstallButton(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Text(
-                            text = if (primaryAsset != null) {
-                                "Install latest"
-                            } else "Not Available",
-                            color = if (enabled) {
-                                MaterialTheme.colorScheme.onPrimary
-                            } else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            if (isUpdateAvailable) {
+                                Icon(
+                                    imageVector = Icons.Default.Update,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onTertiary
+                                )
+                            } else if (isInstalled) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onSecondary
+                                )
+                            }
+
+                            Text(
+                                text = buttonText,
+                                color = if (enabled) {
+                                    when {
+                                        isUpdateAvailable -> MaterialTheme.colorScheme.onTertiary
+                                        isInstalled -> MaterialTheme.colorScheme.onSecondary
+                                        else -> MaterialTheme.colorScheme.onPrimary
+                                    }
+                                } else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
 
                         if (primaryAsset != null) {
                             val assetArch = extractArchitectureFromName(primaryAsset.name)
@@ -174,7 +218,11 @@ fun SmartInstallButton(
                                 Text(
                                     text = assetArch ?: systemArch.name.lowercase(),
                                     color = if (enabled) {
-                                        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                                        when {
+                                            isUpdateAvailable -> MaterialTheme.colorScheme.onTertiary.copy(alpha = 0.8f)
+                                            isInstalled -> MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.8f)
+                                            else -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                                        }
                                     } else {
                                         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                                     },
@@ -192,7 +240,11 @@ fun SmartInstallButton(
                                         imageVector = Icons.Default.CheckCircle,
                                         contentDescription = "Architecture compatible",
                                         tint = if (enabled) {
-                                            MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                                            when {
+                                                isUpdateAvailable -> MaterialTheme.colorScheme.onTertiary.copy(alpha = 0.8f)
+                                                isInstalled -> MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.8f)
+                                                else -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                                            }
                                         } else {
                                             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                                         },
@@ -236,7 +288,7 @@ fun SmartInstallButton(
                 },
                 colors = IconButtonDefaults.iconButtonColors(
                     containerColor = if (enabled) {
-                        MaterialTheme.colorScheme.primary
+                        buttonColor
                     } else MaterialTheme.colorScheme.surfaceContainer
                 ),
                 modifier = Modifier.size(52.dp),
@@ -252,25 +304,16 @@ fun SmartInstallButton(
                     contentDescription = "Show install options",
                     modifier = Modifier.size(24.dp),
                     tint = if (enabled) {
-                        MaterialTheme.colorScheme.onPrimary
+                        when {
+                            isUpdateAvailable -> MaterialTheme.colorScheme.onTertiary
+                            isInstalled -> MaterialTheme.colorScheme.onSecondary
+                            else -> MaterialTheme.colorScheme.onPrimary
+                        }
                     } else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                 )
             }
         }
     }
-}
-
-@Preview
-@Composable
-fun SmartInstallButtonPreview() {
-    SmartInstallButton(
-        isDownloading = false,
-        isInstalling = false,
-        progress = 10,
-        primaryAsset = null,
-        onAction = {},
-        state = DetailsState()
-    )
 }
 
 @Preview

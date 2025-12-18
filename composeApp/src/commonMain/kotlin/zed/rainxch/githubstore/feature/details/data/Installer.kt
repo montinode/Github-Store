@@ -1,5 +1,6 @@
 package zed.rainxch.githubstore.feature.details.data
 
+import zed.rainxch.githubstore.core.data.ApkInfoExtractor
 import zed.rainxch.githubstore.core.domain.model.Architecture
 import zed.rainxch.githubstore.core.domain.model.GithubAsset
 
@@ -25,4 +26,6 @@ interface Installer {
         filePath: String,
         onOpenInstaller: () -> Unit
     )
+
+    fun getApkInfoExtractor(): ApkInfoExtractor
 }

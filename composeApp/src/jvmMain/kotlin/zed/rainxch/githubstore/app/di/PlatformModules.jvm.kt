@@ -4,7 +4,12 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import org.koin.core.module.Module
 import org.koin.dsl.module
+import zed.rainxch.githubstore.core.data.DesktopApkInfoExtractor
+import zed.rainxch.githubstore.core.data.DesktopPackageMonitor
+import zed.rainxch.githubstore.core.data.PackageMonitor
 import zed.rainxch.githubstore.core.data.local.data_store.createDataStore
+import zed.rainxch.githubstore.core.data.local.db.AppDatabase
+import zed.rainxch.githubstore.core.data.local.db.initDatabase
 import zed.rainxch.githubstore.core.domain.getPlatform
 import zed.rainxch.githubstore.core.presentation.utils.BrowserHelper
 import zed.rainxch.githubstore.core.presentation.utils.ClipboardHelper
@@ -30,7 +35,8 @@ actual val platformModule: Module = module {
     single<Installer> {
         val platform = getPlatform()
         DesktopInstaller(
-            platform = platform.type
+            platform = platform.type,
+            apkInfoExtractor = DesktopApkInfoExtractor()
         )
     }
 
@@ -55,5 +61,13 @@ actual val platformModule: Module = module {
 
     single<TokenStore> {
         DesktopTokenStore()
+    }
+
+    single<AppDatabase> {
+        initDatabase()
+    }
+
+    single<PackageMonitor> {
+        DesktopPackageMonitor()
     }
 }
