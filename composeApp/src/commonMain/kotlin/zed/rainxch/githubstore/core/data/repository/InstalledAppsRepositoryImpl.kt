@@ -1,5 +1,6 @@
 package zed.rainxch.githubstore.core.data.repository
 
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import zed.rainxch.githubstore.core.data.local.db.dao.InstalledAppDao
@@ -8,12 +9,14 @@ import zed.rainxch.githubstore.core.data.local.db.entities.InstallSource
 import zed.rainxch.githubstore.core.data.local.db.entities.InstalledApp
 import zed.rainxch.githubstore.core.data.local.db.entities.UpdateHistory
 import zed.rainxch.githubstore.core.domain.repository.InstalledAppsRepository
+import zed.rainxch.githubstore.feature.details.data.Installer
 import zed.rainxch.githubstore.feature.details.domain.repository.DetailsRepository
 
 class InstalledAppsRepositoryImpl(
     private val dao: InstalledAppDao,
     private val historyDao: UpdateHistoryDao,
-    private val detailsRepository: DetailsRepository
+    private val detailsRepository: DetailsRepository,
+    private val installer: Installer
 ) : InstalledAppsRepository {
 
     override fun getAllInstalledApps(): Flow<List<InstalledApp>> = dao.getAllInstalledApps()
@@ -51,7 +54,18 @@ class InstalledAppsRepositoryImpl(
 
             if (latestRelease != null) {
                 val isUpdateAvailable = latestRelease.tagName != app.installedVersion
-                val primaryAsset = latestRelease.assets.firstOrNull()
+
+                val installableAssets = latestRelease.assets.filter { asset ->
+                    installer.isAssetInstallable(asset.name)
+                }
+
+                val primaryAsset = installer.choosePrimaryAsset(installableAssets)
+
+                Logger.d {
+                    "Update check for ${app.appName}: current=${app.installedVersion}, " +
+                            "latest=${latestRelease.tagName}, isUpdate=$isUpdateAvailable, " +
+                            "primaryAsset=${primaryAsset?.name}"
+                }
 
                 dao.updateVersionInfo(
                     packageName = packageName,
@@ -60,13 +74,14 @@ class InstalledAppsRepositoryImpl(
                     assetName = primaryAsset?.name,
                     assetUrl = primaryAsset?.downloadUrl,
                     assetSize = primaryAsset?.size,
-                    releaseNotes = "",
+                    releaseNotes = latestRelease.description ?: "",
                     timestamp = System.currentTimeMillis()
                 )
 
                 return isUpdateAvailable
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Logger.e { "Failed to check updates for $packageName: ${e.message}" }
             dao.updateLastChecked(packageName, System.currentTimeMillis())
         }
 
@@ -77,7 +92,11 @@ class InstalledAppsRepositoryImpl(
         val apps = dao.getAllInstalledApps().first()
         apps.forEach { app ->
             if (app.updateCheckEnabled) {
-                checkForUpdates(app.packageName)
+                try {
+                    checkForUpdates(app.packageName)
+                } catch (e: Exception) {
+                    Logger.w { "Failed to check updates for ${app.packageName}: ${e.message}" }
+                }
             }
         }
     }
@@ -90,7 +109,10 @@ class InstalledAppsRepositoryImpl(
     ) {
         val app = dao.getAppByPackage(packageName) ?: return
 
-        // Record history
+        Logger.d {
+            "Updating app version: $packageName from ${app.installedVersion} to $newVersion"
+        }
+
         historyDao.insertHistory(
             UpdateHistory(
                 packageName = packageName,
@@ -105,12 +127,14 @@ class InstalledAppsRepositoryImpl(
             )
         )
 
-        // Update app
         dao.updateApp(
             app.copy(
                 installedVersion = newVersion,
                 installedAssetName = newAssetName,
                 installedAssetUrl = newAssetUrl,
+                latestVersion = newVersion,
+                latestAssetName = newAssetName,
+                latestAssetUrl = newAssetUrl,
                 isUpdateAvailable = false,
                 lastUpdatedAt = System.currentTimeMillis(),
                 lastCheckedAt = System.currentTimeMillis()

@@ -102,7 +102,8 @@ val coreModule: Module = module {
         InstalledAppsRepositoryImpl(
             dao = get(),
             historyDao = get(),
-            detailsRepository = get()
+            detailsRepository = get(),
+            installer = get()
         )
     }
 }
@@ -218,7 +219,8 @@ val appsModule: Module = module {
             installedAppsRepository = get(),
             installer = get(),
             downloader = get(),
-            packageMonitor = get()
+            packageMonitor = get(),
+            detailsRepository = get()
         )
     }
 }

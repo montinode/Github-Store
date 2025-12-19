@@ -140,12 +140,6 @@ fun AppHeader(
                         color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.weight(1f, fill = false)
                     )
-
-                    if (installedApp != null) {
-                        InstallStatusBadge(
-                            isUpdateAvailable = installedApp.isUpdateAvailable,
-                        )
-                    }
                 }
 
                 Text(
@@ -153,6 +147,14 @@ fun AppHeader(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
+
+                Spacer(Modifier.height(8.dp))
+
+                if (installedApp != null) {
+                    InstallStatusBadge(
+                        isUpdateAvailable = installedApp.isUpdateAvailable,
+                    )
+                }
 
                 Spacer(Modifier.height(8.dp))
 

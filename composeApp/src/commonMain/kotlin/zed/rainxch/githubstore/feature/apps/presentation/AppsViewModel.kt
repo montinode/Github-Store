@@ -24,13 +24,16 @@ import zed.rainxch.githubstore.feature.apps.presentation.model.UpdateAllProgress
 import zed.rainxch.githubstore.feature.apps.presentation.model.UpdateState
 import zed.rainxch.githubstore.feature.details.data.Downloader
 import zed.rainxch.githubstore.feature.details.data.Installer
+import zed.rainxch.githubstore.feature.details.domain.repository.DetailsRepository
+import java.io.File
 
 class AppsViewModel(
     private val appsRepository: AppsRepository,
     private val installer: Installer,
     private val downloader: Downloader,
     private val installedAppsRepository: InstalledAppsRepository,
-    private val packageMonitor: PackageMonitor
+    private val packageMonitor: PackageMonitor,
+    private val detailsRepository: DetailsRepository
 ) : ViewModel() {
 
     private var hasLoadedInitialData = false
@@ -97,7 +100,6 @@ class AppsViewModel(
     fun onAction(action: AppsAction) {
         when (action) {
             AppsAction.OnNavigateBackClick -> {
-                // Handled in UI
             }
 
             is AppsAction.OnSearchChange -> {
@@ -166,21 +168,63 @@ class AppsViewModel(
             try {
                 updateAppState(app.packageName, UpdateState.CheckingUpdate)
 
-                // Get latest release info
-                val latestAssetUrl = app.latestAssetUrl
-                val latestAssetName = app.latestAssetName
-                val latestVersion = app.latestVersion
-                val latestAssetSize = app.latestAssetSize
-
-                if (latestAssetUrl == null || latestAssetName == null || latestVersion == null) {
-                    throw IllegalStateException("Update information not available")
+                val latestRelease = try {
+                    detailsRepository.getLatestPublishedRelease(
+                        owner = app.repoOwner,
+                        repo = app.repoName,
+                        defaultBranch = ""
+                    )
+                } catch (e: Exception) {
+                    Logger.e { "Failed to fetch latest release: ${e.message}" }
+                    throw IllegalStateException("Failed to fetch latest release: ${e.message}")
                 }
 
-                // Ensure permissions
+                if (latestRelease == null) {
+                    throw IllegalStateException("No release found for ${app.appName}")
+                }
+
+                val installableAssets = latestRelease.assets.filter { asset ->
+                    installer.isAssetInstallable(asset.name)
+                }
+
+                if (installableAssets.isEmpty()) {
+                    throw IllegalStateException("No installable assets found for this platform")
+                }
+
+                val primaryAsset = installer.choosePrimaryAsset(installableAssets)
+                    ?: throw IllegalStateException("Could not determine primary asset")
+
+                Logger.d {
+                    "Update: ${app.appName} from ${app.installedVersion} to ${latestRelease.tagName}, " +
+                            "asset: ${primaryAsset.name}"
+                }
+
+                val latestAssetUrl = primaryAsset.downloadUrl
+                val latestAssetName = primaryAsset.name
+                val latestVersion = latestRelease.tagName
+                val latestAssetSize = primaryAsset.size
+
                 val ext = latestAssetName.substringAfterLast('.', "").lowercase()
                 installer.ensurePermissionsOrThrow(ext)
 
-                // Download
+                val existingPath = downloader.getDownloadedFilePath(latestAssetName)
+                if (existingPath != null) {
+                    val file = File(existingPath)
+                    try {
+                        val apkInfo = installer.getApkInfoExtractor().extractPackageInfo(existingPath)
+                        val normalizedExisting = apkInfo?.versionName?.removePrefix("v")?.removePrefix("V") ?: ""
+                        val normalizedLatest = latestVersion.removePrefix("v").removePrefix("V")
+                        if (normalizedExisting != normalizedLatest) {
+                            val deleted = file.delete()
+                            Logger.d { "Deleted mismatched existing file ($normalizedExisting != $normalizedLatest): $deleted" }
+                        }
+                    } catch (e: Exception) {
+                        Logger.w { "Failed to extract APK info for existing file: ${e.message}" }
+                        val deleted = file.delete()
+                        Logger.d { "Deleted unextractable existing file: $deleted" }
+                    }
+                }
+
                 updateAppState(app.packageName, UpdateState.Downloading)
 
                 downloader.download(latestAssetUrl, latestAssetName).collect { progress ->
@@ -190,48 +234,23 @@ class AppsViewModel(
                 val filePath = downloader.getDownloadedFilePath(latestAssetName)
                     ?: throw IllegalStateException("Downloaded file not found")
 
-                // Update database before installation
                 updateAppInDatabase(
                     app = app,
                     newVersion = latestVersion,
                     assetName = latestAssetName,
                     assetUrl = latestAssetUrl,
-                    assetSize = latestAssetSize ?: 0L,
+                    assetSize = latestAssetSize,
                     filePath = filePath
                 )
 
-                // Install
                 updateAppState(app.packageName, UpdateState.Installing)
                 installer.install(filePath, ext)
 
-                // Wait a bit for installation to complete
+                updateAppState(app.packageName, UpdateState.Success)
                 delay(2000)
+                updateAppState(app.packageName, UpdateState.Idle)
 
-                // Verify installation
-                val isInstalled = packageMonitor.isPackageInstalled(app.packageName)
-                if (isInstalled) {
-                    // Clear pending status
-                    installedAppsRepository.updatePendingStatus(app.packageName, false)
-
-                    // Update version from system
-                    val systemInfo = packageMonitor.getInstalledPackageInfo(app.packageName)
-                    if (systemInfo != null) {
-                        installedAppsRepository.updateAppVersion(
-                            packageName = app.packageName,
-                            newVersion = systemInfo.versionName,
-                            newAssetName = latestAssetName,
-                            newAssetUrl = latestAssetUrl
-                        )
-                    }
-
-                    updateAppState(app.packageName, UpdateState.Success)
-                    delay(2000)
-                    updateAppState(app.packageName, UpdateState.Idle)
-
-                    Logger.d { "Successfully updated ${app.appName}" }
-                } else {
-                    throw IllegalStateException("Installation verification failed")
-                }
+                Logger.d { "Successfully updated ${app.appName} to ${latestVersion}" }
 
             } catch (e: CancellationException) {
                 Logger.d { "Update cancelled for ${app.packageName}" }
@@ -240,12 +259,13 @@ class AppsViewModel(
                 throw e
             } catch (e: Exception) {
                 Logger.e { "Update failed for ${app.packageName}: ${e.message}" }
+                e.printStackTrace()
                 cleanupUpdate(app.packageName, app.latestAssetName)
                 updateAppState(
                     app.packageName,
                     UpdateState.Error(e.message ?: "Update failed")
                 )
-                _events.send(AppsEvent.ShowError("Failed to update ${app.appName}"))
+                _events.send(AppsEvent.ShowError("Failed to update ${app.appName}: ${e.message}"))
             } finally {
                 activeUpdates.remove(app.packageName)
             }
@@ -294,15 +314,9 @@ class AppsViewModel(
 
                     Logger.d { "Updating ${index + 1}/${appsToUpdate.size}: ${appItem.installedApp.appName}" }
 
-                    // Update this app and wait for completion
-                    val job = viewModelScope.launch {
-                        updateSingleApp(appItem.installedApp)
-                    }
+                    updateSingleApp(appItem.installedApp)
+                    activeUpdates[appItem.installedApp.packageName]?.join()
 
-                    // Wait for this app to complete before starting next
-                    job.join()
-
-                    // Small delay between apps
                     delay(1000)
                 }
 
@@ -347,7 +361,6 @@ class AppsViewModel(
         activeUpdates.values.forEach { it.cancel() }
         activeUpdates.clear()
 
-        // Cleanup all downloaded files
         viewModelScope.launch {
             _state.value.apps.forEach { appItem ->
                 if (appItem.updateState != UpdateState.Idle &&
@@ -456,11 +469,9 @@ class AppsViewModel(
     override fun onCleared() {
         super.onCleared()
 
-        // Cancel all active updates
         updateAllJob?.cancel()
         activeUpdates.values.forEach { it.cancel() }
 
-        // Cleanup downloaded files
         viewModelScope.launch {
             _state.value.apps.forEach { appItem ->
                 if (appItem.updateState != UpdateState.Idle &&
