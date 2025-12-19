@@ -1,6 +1,8 @@
 package zed.rainxch.githubstore.feature.details.data
 
 import android.content.Context
+import android.os.Build
+import android.os.Environment
 import java.io.File
 
 class AndroidFileLocationsProvider(
@@ -11,6 +13,10 @@ class AndroidFileLocationsProvider(
         val dir = File(externalFilesRoot, "ghs_downloads")
         if (!dir.exists()) dir.mkdirs()
         return dir.absolutePath
+    }
+
+    override fun userDownloadsDir(): String {
+        return "" // No-op
     }
 
     override fun setExecutableIfNeeded(path: String) {

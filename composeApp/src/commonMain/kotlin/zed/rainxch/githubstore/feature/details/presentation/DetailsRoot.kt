@@ -19,11 +19,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.fletchmckee.liquid.liquefiable
 import io.github.fletchmckee.liquid.liquid
 import io.github.fletchmckee.liquid.rememberLiquidState
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import zed.rainxch.githubstore.core.presentation.theme.GithubStoreTheme
@@ -53,6 +58,8 @@ fun DetailsRoot(
     viewModel: DetailsViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     ObserveAsEvents(viewModel.events) { event ->
         when (event) {
@@ -63,11 +70,18 @@ fun DetailsRoot(
             is DetailsEvent.InstallTrackingFailed -> {
 
             }
+
+            is DetailsEvent.OnMessage -> {
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar(event.message)
+                }
+            }
         }
     }
 
     DetailsScreen(
         state = state,
+        snackbarHostState = snackbarHostState,
         onAction = { action ->
             when (action) {
                 DetailsAction.OnNavigateBackClick -> {
@@ -91,6 +105,7 @@ fun DetailsRoot(
 fun DetailsScreen(
     state: DetailsState,
     onAction: (DetailsAction) -> Unit,
+    snackbarHostState: SnackbarHostState,
 ) {
     val liquidTopbarState = rememberLiquidState()
 
@@ -148,7 +163,10 @@ fun DetailsScreen(
                 )
             },
             containerColor = MaterialTheme.colorScheme.background,
-            modifier = Modifier.liquefiable(liquidTopbarState)
+            modifier = Modifier.liquefiable(liquidTopbarState),
+            snackbarHost = {
+                SnackbarHost(snackbarHostState)
+            }
         ) { innerPadding ->
 
             if (state.isLoading) {
@@ -216,7 +234,8 @@ private fun Preview() {
             state = DetailsState(
                 isLoading = false
             ),
-            onAction = {}
+            onAction = {},
+            snackbarHostState = SnackbarHostState()
         )
     }
 }

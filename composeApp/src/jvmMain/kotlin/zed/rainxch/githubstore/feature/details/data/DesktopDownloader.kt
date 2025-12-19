@@ -23,7 +23,7 @@ class DesktopDownloader(
 
     override fun download(url: String, suggestedFileName: String?): Flow<DownloadProgress> = channelFlow {
         withContext(Dispatchers.IO) {
-            val dir = File(files.appDownloadsDir())
+            val dir = File(files.userDownloadsDir())
             if (!dir.exists()) dir.mkdirs()
 
             val safeName = (suggestedFileName?.takeIf { it.isNotBlank() }
@@ -72,7 +72,6 @@ class DesktopDownloader(
 
                 trySend(DownloadProgress(total ?: outFile.length(), total, 100))
             } catch (e: CancellationException) {
-                // Delete partial file on cancellation
                 if (outFile.exists()) {
                     outFile.delete()
                     Logger.d { "Deleted partial file after cancellation: ${outFile.absolutePath}" }
@@ -85,7 +84,7 @@ class DesktopDownloader(
     }
 
     override suspend fun saveToFile(url: String, suggestedFileName: String?): String = withContext(Dispatchers.IO) {
-        val dir = File(files.appDownloadsDir())
+        val dir = File(files.userDownloadsDir())
         val safeName = (suggestedFileName?.takeIf { it.isNotBlank() }
             ?: url.substringAfterLast('/')
                 .ifBlank { "asset-${UUID.randomUUID()}" })
@@ -104,7 +103,7 @@ class DesktopDownloader(
     }
 
     override suspend fun getDownloadedFilePath(fileName: String): String? = withContext(Dispatchers.IO) {
-        val dir = File(files.appDownloadsDir())
+        val dir = File(files.userDownloadsDir())
         val file = File(dir, fileName)
 
         if (file.exists() && file.length() > 0) {
@@ -115,15 +114,15 @@ class DesktopDownloader(
     }
 
     override suspend fun cancelDownload(fileName: String): Boolean = withContext(Dispatchers.IO) {
-        val dir = File(files.appDownloadsDir())
+        val dir = File(files.userDownloadsDir())
         val file = File(dir, fileName)
 
         if (file.exists()) {
             val deleted = file.delete()
             if (deleted) {
-                Logger.d { "Deleted cached file: ${file.absolutePath}" }
+                Logger.d { "Deleted file from Downloads: ${file.absolutePath}" }
             } else {
-                Logger.w { "Failed to delete cached file: ${file.absolutePath}" }
+                Logger.w { "Failed to delete file: ${file.absolutePath}" }
             }
             deleted
         } else {

@@ -519,12 +519,10 @@ class DetailsViewModel(
                 )
 
                 installer.ensurePermissionsOrThrow(
-                    assetName.substringAfterLast('.', "").lowercase()
+                    extOrMime = assetName.substringAfterLast('.', "").lowercase()
                 )
 
                 _state.value = _state.value.copy(downloadStage = DownloadStage.DOWNLOADING)
-
-                var filePath: String? = null
                 downloader.download(downloadUrl, assetName).collect { p ->
                     _state.value = _state.value.copy(downloadProgressPercent = p.percent)
                     if (p.percent == 100) {
@@ -532,7 +530,7 @@ class DetailsViewModel(
                     }
                 }
 
-                filePath = downloader.getDownloadedFilePath(assetName)
+                val filePath = downloader.getDownloadedFilePath(assetName)
                     ?: throw IllegalStateException("Downloaded file not found")
 
                 appendLog(assetName, sizeBytes, releaseTag, "Downloaded")
@@ -544,14 +542,20 @@ class DetailsViewModel(
                     throw IllegalStateException("Asset type .$ext not supported")
                 }
 
-                saveInstalledAppToDatabase(
-                    assetName = assetName,
-                    assetUrl = downloadUrl,
-                    assetSize = sizeBytes,
-                    releaseTag = releaseTag,
-                    isUpdate = isUpdate,
-                    filePath = filePath
-                )
+                if (platform.type == PlatformType.ANDROID) {
+                    saveInstalledAppToDatabase(
+                        assetName = assetName,
+                        assetUrl = downloadUrl,
+                        assetSize = sizeBytes,
+                        releaseTag = releaseTag,
+                        isUpdate = isUpdate,
+                        filePath = filePath
+                    )
+                } else {
+                    viewModelScope.launch {
+                        _events.send(DetailsEvent.OnMessage("Installer was saved into the Downloads folder"))
+                    }
+                }
 
                 installer.install(filePath, ext)
 

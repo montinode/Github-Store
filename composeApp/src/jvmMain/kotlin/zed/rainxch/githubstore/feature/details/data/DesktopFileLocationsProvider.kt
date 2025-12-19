@@ -1,5 +1,6 @@
 package zed.rainxch.githubstore.feature.details.data
 
+import co.touchlab.kermit.Logger
 import zed.rainxch.githubstore.core.domain.model.PlatformType
 import java.io.File
 import java.nio.file.Files
@@ -57,6 +58,63 @@ class DesktopFileLocationsProvider(
                     println("Warning: Could not set executable permission on $path")
                 }
             }
+        }
+    }
+
+    override fun userDownloadsDir(): String {
+        val downloadsDir = when (platform) {
+            PlatformType.WINDOWS -> {
+                val userProfile = System.getenv("USERPROFILE")
+                    ?: System.getProperty("user.home")
+                File(userProfile, "Downloads")
+            }
+            PlatformType.MACOS -> {
+                val home = System.getProperty("user.home")
+                File(home, "Downloads")
+            }
+            PlatformType.LINUX -> {
+                val xdgDownloads = getXdgDownloadsDir()
+                if (xdgDownloads != null) {
+                    File(xdgDownloads)
+                } else {
+                    val home = System.getProperty("user.home")
+                    File(home, "Downloads")
+                }
+            }
+            else -> {
+                File(System.getProperty("user.home"), "Downloads")
+            }
+        }
+
+        if (!downloadsDir.exists()) {
+            downloadsDir.mkdirs()
+        }
+
+        return downloadsDir.absolutePath
+    }
+
+    private fun getXdgDownloadsDir(): String? {
+        return try {
+            val userDirsFile = File(
+                System.getProperty("user.home"),
+                ".config/user-dirs.dirs"
+            )
+
+            if (userDirsFile.exists()) {
+                userDirsFile.readLines().forEach { line ->
+                    if (line.trim().startsWith("XDG_DOWNLOAD_DIR=")) {
+                        val path = line.substringAfter("=")
+                            .trim()
+                            .removeSurrounding("\"")
+                            .replace("\$HOME", System.getProperty("user.home"))
+                        return path
+                    }
+                }
+            }
+            null
+        } catch (e: Exception) {
+            Logger.w { "Failed to read XDG user dirs: ${e.message}" }
+            null
         }
     }
 }
