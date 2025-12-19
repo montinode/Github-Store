@@ -28,7 +28,7 @@ class AuthRepositoryImpl(
         tokenDataSource.current() != null
 
     override suspend fun startDeviceFlow(): DeviceStart =
-        withContext(Dispatchers.Default) {
+        withContext(Dispatchers.IO) {
             val clientId = getGithubClientId()
             require(clientId.isNotBlank()) {
                 "Missing GitHub CLIENT_ID. Add GITHUB_CLIENT_ID to local.properties."
@@ -49,7 +49,7 @@ class AuthRepositoryImpl(
         }
 
     override suspend fun awaitDeviceToken(start: DeviceStart): DeviceTokenSuccess =
-        withContext(Dispatchers.Default) {
+        withContext(Dispatchers.IO) {
             val clientId = getGithubClientId()
             val timeoutMs = start.expiresInSec * 1000L
             var remainingMs = timeoutMs
