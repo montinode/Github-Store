@@ -189,4 +189,9 @@
 
     <string name="system_font">Fuente del sistema</string>
     <string name="system_font_description">Usa la fuente de tu dispositivo para mejor legibilidad</string>
+
+    <string name="theme_light">Claro</string>
+    <string name="theme_dark">Oscuro</string>
+    <string name="theme_system">Sistema</string>
+
 </resources>

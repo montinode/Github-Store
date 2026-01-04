@@ -242,4 +242,9 @@
 
     <string name="system_font">System font</string>
     <string name="system_font_description">Match your device's font for better readability</string>
+
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_system">System</string>
+
 </resources>

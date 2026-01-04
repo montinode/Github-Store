@@ -189,4 +189,9 @@
 
     <string name="system_font">システムフォント</string>
     <string name="system_font_description">デバイスのフォントを使用して読みやすさを向上</string>
+
+    <string name="theme_light">ライト</string>
+    <string name="theme_dark">ダーク</string>
+    <string name="theme_system">システム</string>
+
 </resources>

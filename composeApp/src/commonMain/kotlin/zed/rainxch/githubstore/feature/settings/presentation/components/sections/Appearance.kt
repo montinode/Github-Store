@@ -66,6 +66,9 @@ import githubstore.composeapp.generated.resources.selected_color
 import githubstore.composeapp.generated.resources.system_font
 import githubstore.composeapp.generated.resources.system_font_description
 import githubstore.composeapp.generated.resources.theme_color
+import githubstore.composeapp.generated.resources.theme_dark
+import githubstore.composeapp.generated.resources.theme_light
+import githubstore.composeapp.generated.resources.theme_system
 import org.jetbrains.compose.resources.stringResource
 import zed.rainxch.githubstore.core.presentation.model.AppTheme
 import zed.rainxch.githubstore.core.presentation.theme.isDynamicColorAvailable
@@ -153,7 +156,7 @@ private fun ThemeSelectionCard(
         ) {
             ThemeModeOption(
                 icon = Icons.Default.LightMode,
-                label = "Light",
+                label = stringResource(Res.string.theme_light),
                 isSelected = isDarkTheme != null && !isDarkTheme,
                 onClick = { onDarkThemeChange(false) },
                 modifier = Modifier.weight(1f)
@@ -161,7 +164,7 @@ private fun ThemeSelectionCard(
 
             ThemeModeOption(
                 icon = Icons.Default.DarkMode,
-                label = "Dark",
+                label = stringResource(Res.string.theme_dark),
                 isSelected = isDarkTheme == true,
                 onClick = { onDarkThemeChange(true) },
                 modifier = Modifier.weight(1f)
@@ -169,7 +172,7 @@ private fun ThemeSelectionCard(
 
             ThemeModeOption(
                 icon = Icons.Default.Colorize,
-                label = "System",
+                label = stringResource(Res.string.theme_system),
                 isSelected = isDarkTheme == null,
                 onClick = { onDarkThemeChange(null) },
                 modifier = Modifier.weight(1f)

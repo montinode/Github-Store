@@ -189,4 +189,9 @@
 
     <string name="system_font">Police système</string>
     <string name="system_font_description">Utilisez la police de votre appareil pour une meilleure lisibilité</string>
+
+    <string name="theme_light">Clair</string>
+    <string name="theme_dark">Sombre</string>
+    <string name="theme_system">Système</string>
+
 </resources>
