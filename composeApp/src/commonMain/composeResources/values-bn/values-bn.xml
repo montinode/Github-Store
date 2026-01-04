@@ -58,7 +58,7 @@
         বেশি API রেট লিমিট এবং বিঘ্ন থেকে মুক্তি পেতে সাইন ইন করুন।
     </string>
 
-    <string name="sign_in_with_github">Github দিয়ে সাইন ইন করুন</string>
+    <string name="sign_in_with_github">GitHub দিয়ে সাইন ইন করুন</string>
 
     <string name="error_cancelled">বাতিল করা হয়েছে</string>
     <string name="error_unknown">অজানা ত্রুটি</string>
