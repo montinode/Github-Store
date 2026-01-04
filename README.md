@@ -49,6 +49,10 @@ clean, app‑store style experience:
 
 ---
 
+[FAQ](https://github.com/rainxchzed/Github-Store/wiki/FAQ)
+
+---
+
 ## 🔃 Download
 
 <a href="https://github.com/rainxchzed/Github-Store/releases">
