@@ -2,13 +2,14 @@ package zed.rainxch.githubstore.feature.auth.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import co.touchlab.kermit.Logger
 import githubstore.composeapp.generated.resources.Res
-import githubstore.composeapp.generated.resources.cancel
 import githubstore.composeapp.generated.resources.enter_code_on_github
 import githubstore.composeapp.generated.resources.error_cancelled
 import githubstore.composeapp.generated.resources.error_unknown
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.getString
 import zed.rainxch.githubstore.core.domain.model.DeviceStart
 import zed.rainxch.githubstore.core.presentation.utils.BrowserHelper
@@ -28,8 +30,7 @@ class AuthenticationViewModel(
     private val browserHelper: BrowserHelper,
     private val clipboardHelper: ClipboardHelper,
     private val scope: CoroutineScope,
-
-    ) : ViewModel() {
+) : ViewModel() {
 
     private var hasLoadedInitialData = false
 
@@ -84,58 +85,95 @@ class AuthenticationViewModel(
     }
 
     private fun startLogin() {
-        scope.launch {
+        viewModelScope.launch {
             try {
-                val start = authenticationRepository.startDeviceFlow()
-                _state.update {
-                    it.copy(
-                        loginState = AuthLoginState.DevicePrompt(start),
-                        copied = false
-                    )
+                val start = withContext(Dispatchers.IO) {
+                    authenticationRepository.startDeviceFlow()
                 }
 
-                clipboardHelper.copy(
-                    label = getString(Res.string.enter_code_on_github),
-                    text = start.userCode
-                )
-
-                authenticationRepository.awaitDeviceToken(start = start)
-
-                _state.update { it.copy(loginState = AuthLoginState.LoggedIn) }
-
-                _events.trySend(AuthenticationEvents.OnNavigateToMain)
-            } catch (_: CancellationException) {
-                _state.update { it.copy(loginState = AuthLoginState.Error(getString(Res.string.error_cancelled))) }
-            } catch (t: Throwable) {
-                _state.update {
-                    it.copy(
-                        loginState = AuthLoginState.Error(
-                            t.message ?: getString(Res.string.error_unknown)
+                withContext(Dispatchers.Main.immediate) {
+                    _state.update {
+                        it.copy(
+                            loginState = AuthLoginState.DevicePrompt(start),
+                            copied = false
                         )
-                    )
+                    }
+
+                    try {
+                        clipboardHelper.copy(
+                            label = getString(Res.string.enter_code_on_github),
+                            text = start.userCode
+                        )
+                        _state.update { it.copy(copied = true) }
+                    } catch (e: Exception) {
+                        Logger.d { "⚠️ Failed to copy to clipboard: ${e.message}" }
+                    }
+                }
+
+                withContext(Dispatchers.IO) {
+                    authenticationRepository.awaitDeviceToken(start = start)
+                }
+
+                withContext(Dispatchers.Main.immediate) {
+                    _state.update { it.copy(loginState = AuthLoginState.LoggedIn) }
+                    _events.trySend(AuthenticationEvents.OnNavigateToMain)
+                }
+
+            } catch (e: CancellationException) {
+                withContext(Dispatchers.Main.immediate) {
+                    _state.update {
+                        it.copy(
+                            loginState = AuthLoginState.Error(
+                                getString(Res.string.error_cancelled)
+                            )
+                        )
+                    }
+                }
+            } catch (t: Throwable) {
+                withContext(Dispatchers.Main.immediate) {
+                    _state.update {
+                        it.copy(
+                            loginState = AuthLoginState.Error(
+                                t.message ?: getString(Res.string.error_unknown)
+                            )
+                        )
+                    }
                 }
             }
         }
     }
 
     private fun openGitHub(start: DeviceStart) {
-        val url = start.verificationUriComplete ?: start.verificationUri
-
-        browserHelper.openUrl(url)
+        viewModelScope.launch(Dispatchers.Main.immediate) {
+            try {
+                val url = start.verificationUriComplete ?: start.verificationUri
+                browserHelper.openUrl(url)
+            } catch (e: Exception) {
+                Logger.d { "⚠️ Failed to open browser: ${e.message}" }
+            }
+        }
     }
 
     private fun copyCode(start: DeviceStart) {
-        _state.update {
-            it.copy(
-                loginState = AuthLoginState.DevicePrompt(start),
-                copied = true
-            )
+        viewModelScope.launch(Dispatchers.Main.immediate) {
+            try {
+                _state.update {
+                    it.copy(
+                        loginState = AuthLoginState.DevicePrompt(start),
+                        copied = true
+                    )
+                }
+
+                clipboardHelper.copy(
+                    label = "GitHub Code",
+                    text = start.userCode
+                )
+            } catch (e: Exception) {
+                Logger.d { "⚠️ Failed to copy to clipboard: ${e.message}" }
+                _state.update {
+                    it.copy(copied = false)
+                }
+            }
         }
-
-        clipboardHelper.copy(
-            label = "GitHub Code",
-            text = start.userCode
-        )
     }
-
 }
