@@ -280,7 +280,7 @@
     <string name="open_developer_profile">Geliştirici profilini aç</string>
 
     <string name="failed_to_load_repositories">Repolar yüklenirken hata</string>
-    <string name="failed_to_load_profile">Repolar yüklenirken hata</string>
+    <string name="failed_to_load_profile">Profil yüklenirken hata</string>
 
     <!-- Developer Profile - Stats -->
     <string name="repositories">Repolar</string>
