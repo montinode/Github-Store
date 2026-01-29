@@ -1,89 +1,135 @@
 <div align="center">
-<img src="https://github.com/rainxchzed/Github-Store/blob/main/composeApp/src/commonMain/composeResources/drawable/app-icon.png" width="200" alt="Project logo"/>
+</br>
+<img src="./composeApp/src/commonMain/composeResources/drawable/app-icon.png" width="200" />
+
 </div>
 
-<h1 align="center">GitHub Store</h1>
+<div align="center">
+
+# GitHub Store
+
+</div>
+
+</br>
 
 <p align="center">
-  <a href="https://opensource.org/licenses/Apache-2.0"><img alt="License" src="https://img.shields.io/badge/License-Apache%202.0-blue.svg"/></a>
-  <a href="https://kotlinlang.org"><img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-Multiplatform-7F52FF.svg"/></a>
-  <a href="#"><img alt="Platforms" src="https://img.shields.io/badge/Platforms-Android%20%7C%20Desktop-brightgreen"/></a>
-  <a href="https://github.com/rainxchzed/Github-Store/releases">
-    <img alt="Release" src="https://img.shields.io/github/v/release/rainxchzed/Github-Store?label=Release&logo=github"/>
-  </a>
-  <a href="https://github.com/rainxchzed/Github-Store/stargazers">
-    <img alt="GitHub stars" src="https://img.shields.io/github/stars/rainxchzed/Github-Store?style=social"/>
-  </a>
-  <img alt="Compose Multiplatform" src="https://img.shields.io/badge/Compose-Multiplatform-4285F4?logo=jetpackcompose&logoColor=white"/>
-  <img alt="Koin" src="https://img.shields.io/badge/DI-Koin-3C5A99?logo=kotlin&logoColor=white"/>
+  <img alt="API" src="https://img.shields.io/badge/Api%2024+-50f270?logo=android&logoColor=black&style=for-the-badge"/></a>
+  <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-Multiplatform-a503fc?logo=kotlin&logoColor=white&style=for-the-badge"/></a>
+  <img alt="Compose Multiplatform" src="https://img.shields.io/static/v1?style=for-the-badge&message=Compose+Multiplatform&color=4285F4&logo=Jetpack+Compose&logoColor=FFFFFF&label="/></a> 
+  <img alt="material" src="https://custom-icon-badges.demolab.com/badge/material%20you-lightblue?style=for-the-badge&logoColor=333&logo=material-you"/></a>
+  </br>
+  </br>
+  
+<img src="https://img.shields.io/github/downloads/rainxchzed/GitHub-Store/total?color=aeff4d&style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHRpdGxlPmRvd25sb2FkPC90aXRsZT48cGF0aCBkPSJNNSwyMEgxOVYxOEg1TTE5LDlIMTVWM0g5VjlINUwxMiwxNkwxOSw5WiIgZmlsbD0id2hpdGUiIC8+PC9zdmc+&label=Downloads&labelColor=4b731a"/>
+
+<a href="https://github.com/rainxchzed/Github-Store/stargazers">
+<img src="https://img.shields.io/github/stars/rainxchzed/Github-Store?color=ffff00&style=for-the-badge&labelColor=a1a116&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHRpdGxlPnN0YXI8L3RpdGxlPjxwYXRoIGQ9Ik0xMiwxNy4yN0wxOC4xOCwyMUwxNi41NCwxMy45N0wyMiw5LjI0TDE0LjgxLDguNjJMMTIsMkw5LjE5LDguNjJMMiw5LjI0TDcuNDUsMTMuOTdMNS44MiwyMUwxMiwxNy4yN1oiIGZpbGw9IndoaXRlIiAvPjwvc3ZnPg=="/>
+</a>
+
+<img src="https://img.shields.io/badge/45K+-Users-8ce2ff?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHRpdGxlPmFjY291bnQtZ3JvdXA8L3RpdGxlPjxwYXRoIGQ9Ik0xMiwxMi43NUM3LDEyLjc1IDMsMTMuMzUgMywxNi4yNVYxOEgyMVYxNi4yNUMyMSwxMy4zNSAxNywxMi43NSAxMiwxMi43NU0xNyw3QTE3LDE3IDAgMCwxIDE3LDdNMjEsMTYuMjVWMThIMjRWMTYuMjVDMjQsMTQuNDMgMjEuNSwxMy44NyAxOSwxMy41QzIwLjEyLDE0LjEgMjEsMTUgMjEsMTYuMjVNMiw3QTIsMiAwIDAsMSA0LDVIMjBBMiwyIDAgMCwxIDIyLDdBMiwyIDAgMCwxIDIwLDlINEEyLDIgMCAwLDEgMiw3TTEyLDEwQTMsMyAwIDAsMSA5LDdBMywzIDAgMCwxIDEyLDRBMywzIDAgMCwxIDE1LDdBMywzIDAgMCwxIDEyLDEwWiIgZmlsbD0id2hpdGUiIC8+PC9zdmc+&labelColor=0782ab"/>
+
+</br>
+</br>
+
+<a href="https://github.com/rainxchzed/Github-Store/releases/latest">
+  <img src="https://img.shields.io/github/v/release/rainxchzed/Github-Store?color=a1168e&include_prereleases&logo=github&style=for-the-badge&labelColor=700f63"/>
+</a>
+
+<a href="https://f-droid.org/packages/zed.rainxch.githubstore">
+  <img src="https://img.shields.io/f-droid/v/zed.rainxch.githubstore?color=a1168e&include_prereleases&logo=FDROID&style=for-the-badge&labelColor=700f63"/>
+</a>
+
+</br>
+</br>
+
+<a href="https://hellogithub.com/en/repository/rainxchzed/Github-Store" target="_blank">
+  <img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=rainxchzed%2FGithub-Store&claim_uid=&theme=dark" alt="Featured｜HelloGitHub" style="width: 250px; height: 54px;" width="250" height="54" />
+</a>
+
 </p>
 
-<p align="center">
-<a href="/docs/README-RU.md" target="_blank"> Русский </a> | <a href="/README.md" target="_blank"> English </a> | <a href="/docs/README-ES.md" target="_blank"> Español </a> | <a href="/docs/README-FR.md" target="_blank"> Français </a> | <a href="/docs/README-KR.md" target="_blank"> 한국어 </a> | <a href="/docs/README-ZH.md" target="_blank">中文</a> | <a href="/docs/README-JA.md" target="_blank">日本語</a> | <a href="/docs/README-PL.md" target="_blank">Polski</a>
+<div align="center">
+
+# 🗺️ Project Overview
+
+GitHub Store is a cross-platform app store for GitHub releases, designed to simplify discovering and installing open-source software. It automatically detects installable binaries (APK, EXE, DMG, AppImage, DEB, RPM), provides one-click installation, tracks updates, and presents repository information in a clean, app-store style interface.
+
+Built with Kotlin Multiplatform and Compose Multiplatform for Android and Desktop platforms.
+
+</div>
+
+<p align="middle">
+    <img src="./screenshots/banner.jpeg" width="99%" />
+    <img src="./screenshots/01.jpg" width="18%" />
+    <img src="./screenshots/02.jpg" width="18%" />
+    <img src="./screenshots/03.jpg" width="18%" />
+    <img src="./screenshots/04.jpg" width="18%" />
+    <img src="./screenshots/05.jpg" width="18%" />
 </p>
 
-<p align="center">
-GitHub Store is a cross‑platform “play store” for GitHub releases.
-It discovers repositories that ship real installable binaries and lets you install, track, and update them across platforms from one place.
-</p>
+<div align="center">
 
-<p align="center">
-  <img src="screenshots/banner.png" />
-</p>
+# 📔 Wiki & Resources
 
-#### All screenshots can be found in [screenshots/](screenshots/) folder.
-
----
-
-## 📋 Legal
+Check out GitHub Store [Wiki](https://github.com/rainxchzed/Github-Store/wiki) for FAQ and useful information
 
 **Privacy Policy:** [openhub-store.github.io/privacy-policy](https://openhub-store.github.io/privacy-policy/)
 
-**Disclaimer:** GitHub Store is an independent, open-source project not affiliated with GitHub, Inc. The name describes the app's functionality (discovering GitHub releases from the GitHub platform) and does not imply trademark ownership or association. GitHub® is a registered trademark of GitHub, Inc.
+</div>
 
 ---
 
-<img src="/screenshots/preview.gif" align="right" width="320"/>
+<div align="center">
 
-## ✨ What is GitHub Store?
+### 📋 Legal Notice
 
-GitHub Store is a Kotlin Multiplatform app (Android + Desktop) that turns GitHub releases into a
-clean, app‑store style experience:
+GitHub Store is an independent, open-source project not affiliated with GitHub, Inc.  
+The name describes the app's functionality (discovering GitHub releases) and does not imply trademark ownership.  
+GitHub® is a registered trademark of GitHub, Inc.
 
-- Only shows repositories that actually provide installable assets (APK, EXE, DMG, AppImage, DEB, RPM, etc.).
-- Detects your platform and surfaces the correct installer.
-- Always installs from the latest published release, highlights its changelog, and can notify you when updates are available for installed apps (on Android).
-- Presents a polished details screen with stats, README, and developer info.
+</div>
 
 ---
 
-[FAQ](https://github.com/rainxchzed/Github-Store/wiki/FAQ)
+<div align="center">
 
----
+# 🔃 Download
 
-## 🔃 Download
+</div>
 
+<p align="center">
 <a href="https://github.com/rainxchzed/Github-Store/releases">
-   <image src="https://i.ibb.co/q0mdc4Z/get-it-on-github.png" height="80"/>
- </a>
-
-<a href="https://f-droid.org/en/packages/zed.rainxch.githubstore/">
-   <image src="https://f-droid.org/badge/get-it-on.png" height="80"/>
-   </a>
-   
-> [!IMPORTANT]
-> On macOS, you may see a warning that Apple cannot verify GitHub Store is free of malware. This
-> happens because the app is distributed outside the App Store and is not notarized yet. You can allow
-> it via System Settings → Privacy & Security → Open Anyway.
-
-## 🏆 Featured In
-
-<a href="https://www.youtube.com/@howtomen">
-  <img src="https://img.shields.io/badge/Featured%20by-HowToMen-red?logo=youtube" alt="Featured by HowToMen">
+   <img src="https://i.ibb.co/q0mdc4Z/get-it-on-github.png" height="80"/>
 </a>
+<a href="https://f-droid.org/en/packages/zed.rainxch.githubstore/">
+   <img src="https://f-droid.org/badge/get-it-on.png" height="80"/>
+</a>
+</p>
 
-- **HowToMen**: [Top 20 Best Android Apps 2026](https://www.youtube.com/watch?v=7favc9MDedQ)
-- **Hello Github**: [Featured on Hello Github](https://hellogithub.com/en/repository/rainxchzed/Github-Store)
+> [!IMPORTANT]
+> **macOS Users:** You may see a warning that Apple cannot verify GitHub Store. This happens because the app is distributed outside the App Store and is not notarized yet. Allow it via System Settings → Privacy & Security → Open Anyway.
+
+---
+
+<div align="center">
+
+# 🏆 Featured In
+
+</div>
+
+<p align="center">
+<a href="https://www.youtube.com/@howtomen">
+  <img src="https://img.shields.io/badge/HowToMen-red?style=for-the-badge&logo=youtube&logoColor=white" alt="Featured by HowToMen">
+</a>
+</br>
+<strong>HowToMen:</strong> <a href="https://www.youtube.com/watch?v=7favc9MDedQ">Top 20 Best Android Apps 2026</a> | <a href="https://www.youtube.com/watch?v=VR-MEwPDw4k">Top 12 App Stores that are Better than Google Play Store </a>
+</br>
+<strong>HelloGitHub:</strong> <a href="https://hellogithub.com/en/repository/rainxchzed/Github-Store">Featured Project</a>
+</p>
+
+---
+
+<img src="./screenshots/preview.gif" align="right" width="320" />
 
 ## 🚀 Features
 
