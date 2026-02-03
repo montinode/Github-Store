@@ -4,19 +4,26 @@ import fs from "fs";
 // ====== CONFIG ======
 const RPC_URL = process.env.RPC_URL;
 const WATCH_ADDRESS_RAW = process.env.WATCH_ADDRESS || "";
-const WATCH_ADDRESS = WATCH_ADDRESS_RAW.toLowerCase();
 const POLL_MS = Number(process.env.POLL_MS || 12_000);
 const CONFIRMATIONS = Number(process.env.CONFIRMATIONS || 2); // reorg safety
 const START_BLOCK = process.env.START_BLOCK ? Number(process.env.START_BLOCK) : null;
+const MAX_BACKOFF_MS = 60_000;
 
 if (!RPC_URL) {
   console.error("Missing RPC_URL env var.");
   process.exit(1);
 }
-if (!ethers.isAddress(WATCH_ADDRESS_RAW)) {
+
+let watchAddressChecksum;
+try {
+  watchAddressChecksum = ethers.getAddress(WATCH_ADDRESS_RAW);
+} catch {
   console.error("WATCH_ADDRESS must be a valid 0x address.");
   process.exit(1);
 }
+
+const WATCH_ADDRESS = watchAddressChecksum.toLowerCase();
+const SAFE_ADDRESS = WATCH_ADDRESS.slice(2);
 
 const provider = new ethers.JsonRpcProvider(RPC_URL);
 
@@ -33,8 +40,8 @@ const ERC721_ABI = [
 const IFACE_ERC20 = new ethers.Interface(ERC20_ABI);
 const IFACE_ERC721 = new ethers.Interface(ERC721_ABI);
 
-const stateFile = `./state-${WATCH_ADDRESS}.json`;
-const logFile = `./evidence-${WATCH_ADDRESS}.log`;
+const stateFile = `./state-${SAFE_ADDRESS}.json`;
+const logFile = `./evidence-${SAFE_ADDRESS}.log`;
 
 function loadState() {
   try {
@@ -163,7 +170,7 @@ async function main() {
     } catch (e) {
       log(`ERROR ${e?.message || String(e)}`);
       // brief backoff on RPC errors
-      await new Promise((r) => setTimeout(r, Math.min(POLL_MS * 2, 60_000)));
+      await new Promise((r) => setTimeout(r, Math.min(POLL_MS * 2, MAX_BACKOFF_MS)));
     }
 
     await new Promise((r) => setTimeout(r, POLL_MS));
