@@ -7,6 +7,9 @@ local.properties
 
 # Log/OS Files
 *.log
+state-*.json
+evidence-*.log
+scripts/node_modules/
 
 # Android Studio generated files and folders
 captures/
