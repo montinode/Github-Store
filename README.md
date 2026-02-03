@@ -75,6 +75,8 @@ Check out GitHub Store [Wiki](https://github.com/rainxchzed/Github-Store/wiki) f
 
 **Privacy Policy:** [openhub-store.github.io/privacy-policy](https://openhub-store.github.io/privacy-policy/)
 
+**Utility Scripts:** See [scripts/README.md](scripts/README.md) for helper scripts used in the repo.
+
 </div>
 
 ---
